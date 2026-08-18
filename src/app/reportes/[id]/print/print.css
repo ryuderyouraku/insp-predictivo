@@ -1,9 +1,42 @@
-@media print {
-  .polea-block,
-  .trend-chart {
-    page-break-inside: avoid;
-  }
-  .historico-section {
-    page-break-before: always;
-  }
+html,
+body {
+  background: #fff;
+  color: #111827;
+}
+
+* {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.reporte-print {
+  font-size: 10.5pt;
+  line-height: 1.55;
+}
+
+.reporte-print > section {
+  margin-top: 20px;
+}
+
+.page-break-after {
+  page-break-after: always;
+  break-after: page;
+}
+
+.page-break-before {
+  page-break-before: always;
+  break-before: page;
+}
+
+.avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr {
+  page-break-inside: avoid;
 }

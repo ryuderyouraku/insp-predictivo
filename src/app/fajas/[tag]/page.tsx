@@ -116,7 +116,7 @@ export default async function FajaDetailPage({ params }: { params: { tag: string
             <h2 className="mb-2 font-medium">Tendencias</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {historico.map((polea) => (
-                <TrendChart key={polea.poleaId} polea={polea} />
+                <TrendChart key={polea.poleaId} polea={polea} criterios={faja.criterios} />
               ))}
             </div>
           </section>
