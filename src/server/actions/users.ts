@@ -6,6 +6,9 @@ import { requireUser } from '@/lib/session'
 import { canAssignRole, canManageUser } from '@/lib/permissions'
 import type { ActorUser } from '@/lib/permissions'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
+import { normalizePhone, isValidPhone } from '@/lib/phone'
+import { createPasswordSetToken } from '@/lib/passwordSetToken'
+import { sendInviteWhatsApp, sendWelcomeWhatsApp } from '@/lib/whatsapp'
 import type { Role, User } from '@prisma/client'
 
 export type SafeUser = Omit<User, 'passwordHash'> & {
@@ -21,9 +24,20 @@ const USER_SELECT = {
   contratistaId: true,
   clienteId: true,
   createdAt: true,
+  phone: true,
+  mustSetPassword: true,
+  whatsappBotEnabled: true,
   contratista: { select: { nombre: true } },
   cliente: { select: { nombre: true } },
 } as const
+
+/** Normalizes+validates an optional phone input; returns null for an empty/absent value. */
+function resolvePhone(input: string | undefined): string | null {
+  if (!input || !input.trim()) return null
+  const phone = normalizePhone(input)
+  if (!isValidPhone(phone)) throw new Error('El teléfono debe estar en formato internacional, ej: +51987654321')
+  return phone
+}
 
 function assertManager(actor: ActorUser) {
   if (actor.role !== 'ADMIN' && actor.role !== 'SUPERVISOR') {
@@ -74,6 +88,7 @@ export interface CreateUserInput {
   role: Role
   contratistaId?: string
   clienteId?: string
+  phone?: string
 }
 
 export async function createUser(input: CreateUserInput): Promise<SafeUser> {
@@ -90,15 +105,35 @@ export async function createUser(input: CreateUserInput): Promise<SafeUser> {
   if (input.password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres')
 
   const scope = resolveScope(actor, input.role, input)
+  const phone = resolvePhone(input.phone)
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) throw new Error(`Ya existe un usuario con el email ${email}`)
+  if (phone) {
+    const existingPhone = await prisma.user.findUnique({ where: { phone } })
+    if (existingPhone) throw new Error(`Ya existe un usuario con el teléfono ${phone}`)
+  }
 
   const passwordHash = await bcrypt.hash(input.password, 10)
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role: input.role, ...scope },
+    data: {
+      name,
+      email,
+      passwordHash,
+      role: input.role,
+      ...scope,
+      phone,
+      mustSetPassword: phone !== null,
+      whatsappBotEnabled: phone !== null,
+    },
     select: USER_SELECT,
   })
+
+  if (phone) {
+    const token = await createPasswordSetToken(user.id)
+    await sendInviteWhatsApp({ name: user.name, phone }, token)
+  }
+
   safeRevalidatePath('/admin')
   return user
 }
@@ -109,6 +144,7 @@ export interface UpdateUserInput {
   role: Role
   contratistaId?: string
   clienteId?: string
+  phone?: string
 }
 
 export async function updateUser(userId: string, input: UpdateUserInput): Promise<SafeUser> {
@@ -127,12 +163,36 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
   }
 
   const scope = resolveScope(actor, input.role, input)
+  const phone = resolvePhone(input.phone)
+  if (phone && phone !== target.phone) {
+    const existingPhone = await prisma.user.findUnique({ where: { phone } })
+    if (existingPhone) throw new Error(`Ya existe un usuario con el teléfono ${phone}`)
+  }
+
+  const phoneJustAdded = phone !== null && target.phone === null
 
   const user = await prisma.user.update({
     where: { id: userId },
-    data: { name, email, role: input.role, ...scope },
+    data: {
+      name,
+      email,
+      role: input.role,
+      ...scope,
+      phone,
+      whatsappBotEnabled: phone === null ? false : phoneJustAdded ? true : target.whatsappBotEnabled,
+    },
     select: USER_SELECT,
   })
+
+  if (phoneJustAdded && phone) {
+    if (target.mustSetPassword) {
+      const token = await createPasswordSetToken(userId)
+      await sendInviteWhatsApp({ name: user.name, phone }, token)
+    } else {
+      await sendWelcomeWhatsApp({ name: user.name, phone })
+    }
+  }
+
   safeRevalidatePath('/admin')
   return user
 }
@@ -144,8 +204,31 @@ export async function resetUserPassword(userId: string, newPassword: string): Pr
   if (!canManageUser(actor, target)) throw new Error('No autorizado para editar este usuario')
   if (newPassword.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres')
   const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({ where: { id: userId }, data: { passwordHash } })
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash, mustSetPassword: false } })
   safeRevalidatePath('/admin')
+}
+
+/** Grants/revokes bot access without touching the phone number itself. */
+export async function toggleWhatsappBotAccess(userId: string, enabled: boolean): Promise<void> {
+  const actor = await requireUser()
+  assertManager(actor)
+  const target = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+  if (!canManageUser(actor, target)) throw new Error('No autorizado para editar este usuario')
+  if (enabled && !target.phone) throw new Error('Este usuario no tiene un teléfono registrado')
+  await prisma.user.update({ where: { id: userId }, data: { whatsappBotEnabled: enabled } })
+  safeRevalidatePath('/admin')
+}
+
+/** Re-sends the WhatsApp invite with a fresh token — for users still pending activation. */
+export async function resendInvite(userId: string): Promise<void> {
+  const actor = await requireUser()
+  assertManager(actor)
+  const target = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+  if (!canManageUser(actor, target)) throw new Error('No autorizado para editar este usuario')
+  if (!target.phone) throw new Error('Este usuario no tiene un teléfono registrado')
+  if (!target.mustSetPassword) throw new Error('Este usuario ya activó su cuenta')
+  const token = await createPasswordSetToken(userId)
+  await sendInviteWhatsApp({ name: target.name, phone: target.phone }, token)
 }
 
 export async function deleteUser(userId: string): Promise<void> {

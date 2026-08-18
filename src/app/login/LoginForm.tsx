@@ -44,6 +44,9 @@ function LoginFormInner() {
       <button type="submit" className="w-full rounded bg-blue-600 px-3 py-2 text-white">
         Entrar
       </button>
+      <p className="text-center text-xs text-gray-500">
+        ¿Recibiste una invitación por WhatsApp? Usa el enlace para crear tu contraseña.
+      </p>
     </form>
   )
 }

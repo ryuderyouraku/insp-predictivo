@@ -9,10 +9,19 @@ describe('verifyCredentials', () => {
     await prisma.user.create({
       data: { name: 'Test User', email: 'auth-test@example.com', passwordHash, role: 'SUPERVISOR' },
     })
+    await prisma.user.create({
+      data: {
+        name: 'Pending User',
+        email: 'auth-test-pending@example.com',
+        passwordHash: '',
+        role: 'SUPERVISOR',
+        mustSetPassword: true,
+      },
+    })
   })
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email: 'auth-test@example.com' } })
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'auth-test' } } })
     await prisma.$disconnect()
   })
 
@@ -27,5 +36,9 @@ describe('verifyCredentials', () => {
 
   it('returns null when the user does not exist', async () => {
     expect(await verifyCredentials('nobody@example.com', 'secret123')).toBeNull()
+  })
+
+  it('returns null for a user pending WhatsApp activation, even with the right password later', async () => {
+    expect(await verifyCredentials('auth-test-pending@example.com', 'anything')).toBeNull()
   })
 })

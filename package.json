@@ -13,10 +13,13 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@chat-adapter/state-pg": "^4.38.1",
+    "@chat-adapter/whatsapp": "^4.38.1",
     "@prisma/client": "^5.18.0",
     "@sparticuz/chromium": "^149.0.0",
     "ai": "^7.0.52",
     "bcryptjs": "^2.4.3",
+    "chat": "^4.38.1",
     "cloudinary": "^2.4.0",
     "next": "^14.2.0",
     "next-auth": "^4.24.7",

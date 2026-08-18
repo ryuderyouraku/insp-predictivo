@@ -28,6 +28,7 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [role, setRole] = useState<Role>(assignableRoles[0])
   const [contratistaId, setContratistaId] = useState(contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
@@ -51,10 +52,12 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
         role,
         contratistaId: needsContratista ? contratistaId : undefined,
         clienteId: needsCliente ? clienteId : undefined,
+        phone: phone.trim() || undefined,
       })
       setName('')
       setEmail('')
       setPassword('')
+      setPhone('')
       setRole(assignableRoles[0])
       setSuccess(true)
       router.refresh()
@@ -98,6 +101,19 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
             minLength={8}
             required
           />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Teléfono (WhatsApp, opcional)</span>
+          <input
+            type="tel"
+            placeholder="+51987654321"
+            className="w-full rounded border px-3 py-2"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+          />
+          <span className="mt-1 block text-xs text-gray-400">
+            Si lo completas, le mandamos un WhatsApp para que cree su propia contraseña.
+          </span>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Rol</span>

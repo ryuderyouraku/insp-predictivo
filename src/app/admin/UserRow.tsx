@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { deleteUser, resetUserPassword, updateUser, type SafeUser } from '@/server/actions/users'
+import {
+  deleteUser,
+  resetUserPassword,
+  updateUser,
+  toggleWhatsappBotAccess,
+  resendInvite,
+  type SafeUser,
+} from '@/server/actions/users'
 import type { Cliente, Contratista, Role } from '@prisma/client'
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -36,6 +43,7 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email)
+  const [phone, setPhone] = useState(user.phone ?? '')
   const [role, setRole] = useState<Role>(user.role)
   const [contratistaId, setContratistaId] = useState(user.contratistaId ?? contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(user.clienteId ?? clientes[0]?.id ?? '')
@@ -56,11 +64,38 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
         role,
         contratistaId: needsContratista ? contratistaId : undefined,
         clienteId: needsCliente ? clienteId : undefined,
+        phone: phone.trim() || undefined,
       })
       setEditing(false)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleToggleBot() {
+    setError(null)
+    setBusy(true)
+    try {
+      await toggleWhatsappBotAccess(user.id, !user.whatsappBotEnabled)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cambiar el acceso al bot')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResendInvite() {
+    setError(null)
+    setBusy(true)
+    try {
+      await resendInvite(user.id)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al reenviar la invitación')
     } finally {
       setBusy(false)
     }
@@ -100,6 +135,12 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-center">
             <input className="rounded border px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="rounded border px-2 py-1" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              className="rounded border px-2 py-1"
+              placeholder="Teléfono, ej: +51987654321"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
             <select className="rounded border px-2 py-1" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               {assignableRoles.map((r) => (
                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -143,7 +184,29 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   return (
     <tr className="border-b">
       <td className="px-4 py-3">{user.name}</td>
-      <td className="px-4 py-3">{user.email}</td>
+      <td className="px-4 py-3">
+        {user.email}
+        {user.phone && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+            <span>{user.phone}</span>
+            {user.mustSetPassword ? (
+              <span className="rounded-full bg-yellow-100 px-2 py-0.5 font-medium text-yellow-700">
+                Pendiente de activar
+              </span>
+            ) : (
+              <button
+                onClick={handleToggleBot}
+                disabled={busy}
+                className={`rounded-full px-2 py-0.5 font-medium disabled:opacity-50 ${
+                  user.whatsappBotEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                {user.whatsappBotEnabled ? 'Bot activo' : 'Bot desactivado'}
+              </button>
+            )}
+          </div>
+        )}
+      </td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE[user.role]}`}>
           {ROLE_LABELS[user.role]}
@@ -159,6 +222,15 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
           <button onClick={() => setResetting((v) => !v)} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">
             Resetear contraseña
           </button>
+          {user.phone && user.mustSetPassword && (
+            <button
+              onClick={handleResendInvite}
+              disabled={busy}
+              className="rounded border px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+            >
+              Reenviar invitación
+            </button>
+          )}
           {!isSelf && (
             <button
               onClick={() => setConfirmingDelete((v) => !v)}
