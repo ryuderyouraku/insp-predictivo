@@ -35,7 +35,7 @@ export async function analizarTermograma(input: AnalizarTermogramaInput): Promis
 
   try {
     const { output } = await generateText({
-      model: 'anthropic/claude-sonnet-5',
+      model: 'alibaba/qwen3-vl-instruct',
       output: Output.object({ schema: AnalisisSchema }),
       messages: [
         {
@@ -89,7 +89,7 @@ export async function generarObservacionGeneral(input: GenerarObservacionInput):
     .join('\n')
 
   const { text } = await generateText({
-    model: 'anthropic/claude-sonnet-5',
+    model: 'alibaba/qwen3-vl-instruct',
     prompt:
       `Eres un especialista en termografía industrial certificado como analista en termografia categoria 3. Con estas lecturas de todas las poleas de una faja transportadora, ` +
       `escribe la observación general del reporte de inspección: 1 oración, en español, técnicas y directas.\n` +
