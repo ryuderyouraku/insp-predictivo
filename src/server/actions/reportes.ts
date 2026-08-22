@@ -6,6 +6,7 @@ import { safeRevalidatePath } from '@/lib/safeRevalidate'
 import { requireUser } from '@/lib/session'
 import { canCreateReporte, canDeleteReporte, canReadFaja } from '@/lib/permissions'
 import { verifyPrintToken } from '@/lib/printToken'
+import { parseReporteSlug, reporteMatchesSlugParts } from '@/lib/reporteSlug'
 import type { Condicion, Reporte } from '@prisma/client'
 
 export interface LecturaPoleaInput {
@@ -74,6 +75,20 @@ const REPORTE_INCLUDE = {
 export async function getReporteById(id: string) {
   const user = await requireUser()
   const reporte = await prisma.reporte.findUnique({ where: { id }, include: REPORTE_INCLUDE })
+  if (!reporte || !canReadFaja(user, reporte.faja)) return null
+  return reporte
+}
+
+export async function getReporteBySlug(slug: string) {
+  const parsed = parseReporteSlug(slug)
+  if (!parsed) return null
+  const user = await requireUser()
+  const candidatos = await prisma.reporte.findMany({
+    where: { faja: { tag: parsed.tag } },
+    include: REPORTE_INCLUDE,
+    orderBy: { createdAt: 'asc' },
+  })
+  const reporte = candidatos.find((r) => reporteMatchesSlugParts(parsed, r))
   if (!reporte || !canReadFaja(user, reporte.faja)) return null
   return reporte
 }

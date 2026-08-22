@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { Browser } from 'puppeteer-core'
 import { getReporteById } from '@/server/actions/reportes'
 import { generatePrintToken } from '@/lib/printToken'
+import { buildReporteSlug } from '@/lib/reporteSlug'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -44,7 +45,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000'
   const token = generatePrintToken(params.id)
-  const printUrl = `${baseUrl}/reportes/${params.id}/print?token=${token}`
+  const printUrl = `${baseUrl}/reportes/print/${params.id}?token=${token}`
 
   const browser = await launchBrowser()
   try {
@@ -78,10 +79,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
       `,
     })
 
+    const filename = `${buildReporteSlug(reporte.faja.tag, reporte.fecha, reporte.createdAt)}.pdf`
+
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="reporte-${params.id}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
   } catch (error) {

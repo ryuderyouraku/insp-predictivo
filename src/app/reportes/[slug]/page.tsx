@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { requireUser } from '@/lib/session'
 import { canManageFaja } from '@/lib/permissions'
-import { getReporteById } from '@/server/actions/reportes'
+import { getReporteBySlug } from '@/server/actions/reportes'
 import { resumirReporte } from '@/lib/reporteResumen'
 import { CONDICION_LABELS, CONDICION_STYLES } from '@/lib/condicion'
 import { ReporteInfoCard } from '@/components/reporte/ReporteInfoCard'
@@ -12,10 +12,10 @@ import { CriterioTable } from '@/components/CriterioTable'
 import { PoleaDiagnosticoBlock } from '@/components/PoleaDiagnosticoBlock'
 import { DeleteReporteButton } from './DeleteReporteButton'
 
-export default async function ReporteDetailPage({ params }: { params: { id: string } }) {
+export default async function ReporteDetailPage({ params }: { params: { slug: string } }) {
   const user = await requireUser()
 
-  const reporte = await getReporteById(params.id)
+  const reporte = await getReporteBySlug(params.slug)
   if (!reporte) notFound()
   const canDelete = canManageFaja(user, reporte.faja)
   const resumen = resumirReporte(reporte)

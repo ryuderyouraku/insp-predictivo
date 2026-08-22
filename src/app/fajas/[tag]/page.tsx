@@ -12,6 +12,7 @@ import { CriterioTable } from '@/components/CriterioTable'
 import { HistoricoTable } from '@/components/HistoricoTable'
 import { TrendChart } from '@/components/TrendChart'
 import { CondicionBadge } from '@/components/CondicionBadge'
+import { buildReporteSlug } from '@/lib/reporteSlug'
 
 export default async function FajaDetailPage({ params }: { params: { tag: string } }) {
   const user = await requireUser()
@@ -93,7 +94,7 @@ export default async function FajaDetailPage({ params }: { params: { tag: string
             {faja.reportes.map((reporte) => (
               <li key={reporte.id}>
                 <Link
-                  href={`/reportes/${reporte.id}`}
+                  href={`/reportes/${encodeURIComponent(buildReporteSlug(faja.tag, reporte.fecha, reporte.createdAt))}`}
                   className="flex items-center justify-between rounded border bg-white p-3 transition hover:border-blue-400 hover:shadow-sm"
                 >
                   <span>{new Date(reporte.fecha).toLocaleDateString('es-PE')} — {reporte.especialista}</span>
