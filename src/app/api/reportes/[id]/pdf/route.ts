@@ -88,6 +88,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       },
     })
   } catch (error) {
+    console.error('Error generando PDF de reporte', params.id, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Error al generar el PDF' },
       { status: 500 }
