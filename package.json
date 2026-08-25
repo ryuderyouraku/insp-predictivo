@@ -13,6 +13,7 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.42",
     "@chat-adapter/state-pg": "^4.38.1",
     "@chat-adapter/whatsapp": "^4.38.1",
     "@prisma/client": "^5.18.0",

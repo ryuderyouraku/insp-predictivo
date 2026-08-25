@@ -1,9 +1,12 @@
 'use server'
 
 import { generateText, Output, NoObjectGeneratedError } from 'ai'
+import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { requireUser } from '@/lib/session'
 import type { Condicion, CriterioAceptacion } from '@prisma/client'
+
+const haiku = anthropic('claude-haiku-4-5-20251001')
 
 const AnalisisSchema = z.object({
   tempIzquierda: z.number(),
@@ -35,7 +38,7 @@ export async function analizarTermograma(input: AnalizarTermogramaInput): Promis
 
   try {
     const { output } = await generateText({
-      model: 'alibaba/qwen3-vl-instruct',
+      model: haiku,
       output: Output.object({ schema: AnalisisSchema }),
       messages: [
         {
@@ -89,7 +92,7 @@ export async function generarObservacionGeneral(input: GenerarObservacionInput):
     .join('\n')
 
   const { text } = await generateText({
-    model: 'alibaba/qwen3-vl-instruct',
+    model: haiku,
     prompt:
       `Eres un especialista en termografía industrial certificado como analista en termografia categoria 3. Con estas lecturas de todas las poleas de una faja transportadora, ` +
       `escribe la observación general del reporte de inspección: 1 oración, en español, técnicas y directas.\n` +
