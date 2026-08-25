@@ -40,7 +40,7 @@ export function ReportePortada({ reporte }: { reporte: ReporteConDetalle }) {
           <Dato label="Componentes" value="Chumaceras" />
           <Dato label="Supervisor" value={reporte.supervisor} />
           <Dato label="Inspector" value={reporte.especialista} />
-          <Dato label="Nº Aviso SAP" value={reporte.numeroAvisoSAP} />
+          <Dato label="Nº OT" value={reporte.numeroOT} />
           <Dato label="Poleas evaluadas" value={String(reporte.lecturas.length)} />
         </dl>
       </div>

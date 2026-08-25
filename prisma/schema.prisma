@@ -120,7 +120,7 @@ model Reporte {
   fecha              DateTime
   especialista       String
   supervisor         String
-  numeroAvisoSAP     String
+  numeroOT           String
   condicionGeneral   Condicion
   observacionGeneral String         @default("Equipo sin indicaciones")
   createdByUserId    String

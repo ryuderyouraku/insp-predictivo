@@ -37,7 +37,7 @@ describe('createReporte', () => {
       fecha: new Date('2026-08-02'),
       especialista: 'Nelson Larico',
       supervisor: 'Rolando Aliaga',
-      numeroAvisoSAP: '4016597449',
+      numeroOT: '4016597449',
       lecturas: faja.poleas.map((polea, index) => ({
         poleaId: polea.id,
         tempIzquierda: 20,
@@ -65,7 +65,7 @@ describe('createReporte', () => {
         fecha: new Date(),
         especialista: 'X',
         supervisor: 'Y',
-        numeroAvisoSAP: '123',
+        numeroOT: '123',
         lecturas: [
           {
             poleaId: faja.poleas[0].id,
@@ -90,7 +90,7 @@ describe('createReporte', () => {
       fecha: new Date(),
       especialista: 'X',
       supervisor: 'Y',
-      numeroAvisoSAP: '123',
+      numeroOT: '123',
       lecturas: faja.poleas.map((polea) => ({
         poleaId: polea.id,
         tempIzquierda: 20,

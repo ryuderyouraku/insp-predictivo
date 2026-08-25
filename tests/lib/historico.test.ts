@@ -37,12 +37,12 @@ describe('getHistoricoByFaja', () => {
     }
     await createReporte({
       fajaId: faja.id, fecha: new Date('2026-02-17'), especialista: 'X', supervisor: 'Y',
-      numeroAvisoSAP: '1',
+      numeroOT: '1',
       lecturas: [{ ...lecturaInput, tempIzquierda: 22.8, tempDerecha: 26.2 }],
     })
     await createReporte({
       fajaId: faja.id, fecha: new Date('2026-08-02'), especialista: 'X', supervisor: 'Y',
-      numeroAvisoSAP: '2',
+      numeroOT: '2',
       lecturas: [{ ...lecturaInput, tempIzquierda: 32.4, tempDerecha: 22.5 }],
     })
 

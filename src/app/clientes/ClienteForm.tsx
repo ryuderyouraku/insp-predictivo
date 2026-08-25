@@ -39,7 +39,6 @@ export function ClienteForm() {
         <span className="mb-1 block text-gray-600">Nombre del cliente</span>
         <input
           className="w-full rounded border px-3 py-2"
-          placeholder="ej. ANGLOAMERICAN - QUELLAVECO"
           value={nombre}
           onChange={(event) => {
             setNombre(event.target.value)

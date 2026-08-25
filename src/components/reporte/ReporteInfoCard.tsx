@@ -21,7 +21,7 @@ export function ReporteInfoCard({ reporte }: { reporte: ReporteConDetalle }) {
         <Campo label="Supervisor" value={reporte.supervisor} />
         <Campo label="Componentes" value="Chumaceras" />
         <Campo label="Especialista" value={reporte.especialista} />
-        <Campo label="Nº Aviso SAP" value={reporte.numeroAvisoSAP} />
+        <Campo label="Nº OT" value={reporte.numeroOT} />
       </dl>
     </div>
   )

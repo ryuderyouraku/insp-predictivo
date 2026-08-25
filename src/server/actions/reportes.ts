@@ -24,7 +24,7 @@ export interface CreateReporteInput {
   fecha: Date
   especialista: string
   supervisor: string
-  numeroAvisoSAP: string
+  numeroOT: string
   observacionGeneral?: string
   lecturas: LecturaPoleaInput[]
 }
@@ -56,7 +56,7 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
       fecha: input.fecha,
       especialista: input.especialista.trim(),
       supervisor: input.supervisor.trim(),
-      numeroAvisoSAP: input.numeroAvisoSAP.trim(),
+      numeroOT: input.numeroOT.trim(),
       condicionGeneral,
       observacionGeneral: input.observacionGeneral || 'Equipo sin indicaciones',
       createdByUserId: user.id,

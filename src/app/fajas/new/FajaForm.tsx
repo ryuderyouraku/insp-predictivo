@@ -101,11 +101,11 @@ export function FajaForm({ clientes, contratistas, lockedContratista }: FajaForm
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Área</span>
-          <input className="w-full rounded border px-3 py-2" placeholder="ej. 3220" value={area} onChange={(e) => setArea(e.target.value)} required />
+          <input className="w-full rounded border px-3 py-2" value={area} onChange={(e) => setArea(e.target.value)} required />
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Nombre</span>
-          <input className="w-full rounded border px-3 py-2" placeholder="ej. CV001" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+          <input className="w-full rounded border px-3 py-2" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
         </label>
       </div>
       {tagPreview && (
@@ -115,11 +115,11 @@ export function FajaForm({ clientes, contratistas, lockedContratista }: FajaForm
       )}
       <label className="block text-sm">
         <span className="mb-1 block text-gray-600">Lugar</span>
-        <input className="w-full rounded border px-3 py-2" placeholder="ej. MOQUEGUA" value={lugar} onChange={(e) => setLugar(e.target.value)} required />
+        <input className="w-full rounded border px-3 py-2" value={lugar} onChange={(e) => setLugar(e.target.value)} required />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block text-gray-600">Descripción (opcional)</span>
-        <input className="w-full rounded border px-3 py-2" placeholder="ej. Faja transportadora Pebbles" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+        <input className="w-full rounded border px-3 py-2" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
       </label>
       <label className="block text-sm font-medium">
         Número de poleas

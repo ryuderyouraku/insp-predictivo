@@ -37,7 +37,7 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
   const [especialista, setEspecialista] = useState(currentUserName)
   const [supervisor, setSupervisor] = useState(supervisores[0]?.name ?? '')
-  const [numeroAvisoSAP, setNumeroAvisoSAP] = useState('')
+  const [numeroOT, setNumeroOT] = useState('')
   const [observacionGeneral, setObservacionGeneral] = useState('Equipo sin indicaciones')
   const [generandoObservacion, setGenerandoObservacion] = useState(false)
   const [observacionError, setObservacionError] = useState<string | null>(null)
@@ -135,7 +135,7 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
         fecha: new Date(fecha),
         especialista,
         supervisor,
-        numeroAvisoSAP,
+        numeroOT,
         observacionGeneral,
         lecturas: faja.poleas.map((polea) => {
           const l = lecturas[polea.id]
@@ -178,8 +178,8 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
           <input type="date" className="w-full rounded border px-3 py-2" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-gray-600">Nº Aviso SAP</span>
-          <input className="w-full rounded border px-3 py-2" value={numeroAvisoSAP} onChange={(e) => setNumeroAvisoSAP(e.target.value)} required />
+          <span className="mb-1 block text-gray-600">Nº OT</span>
+          <input className="w-full rounded border px-3 py-2" value={numeroOT} onChange={(e) => setNumeroOT(e.target.value)} required />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-gray-600">Especialista</span>

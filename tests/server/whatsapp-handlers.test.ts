@@ -31,7 +31,7 @@ async function makeScenario() {
     fecha: new Date('2026-07-12'),
     especialista: 'Nelson',
     supervisor: 'Rolando',
-    numeroAvisoSAP: 'SAP-1',
+    numeroOT: 'OT-1',
     lecturas: [
       {
         poleaId: poleas[0].id,

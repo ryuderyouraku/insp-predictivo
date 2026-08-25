@@ -66,7 +66,7 @@ describe('faja editing actions', () => {
         fecha: new Date(),
         especialista: 'X',
         supervisor: 'Y',
-        numeroAvisoSAP: '123',
+        numeroOT: '123',
         condicionGeneral: 'BUENO',
         createdByUserId: 'test-user',
       },
