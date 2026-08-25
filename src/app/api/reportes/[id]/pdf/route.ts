@@ -47,10 +47,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const token = generatePrintToken(params.id)
   const printUrl = `${baseUrl}/reportes/print/${params.id}?token=${token}`
 
+  console.log('PDF: navegando a', printUrl)
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
-    const response = await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 30000 })
+    let response
+    try {
+      response = await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 30000 })
+    } catch (gotoError) {
+      console.error('PDF: page.goto lanzó una excepción', gotoError)
+      throw gotoError
+    }
+    console.log('PDF: respuesta de goto', response ? response.status() : 'null')
     if (!response || !response.ok()) {
       throw new Error('No se pudo cargar la vista de impresión del reporte')
     }
