@@ -32,10 +32,11 @@ async function launchBrowser(): Promise<Browser> {
   return puppeteer.launch({ headless: true })
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   let reporte
   try {
-    reporte = await getReporteById(params.id)
+    reporte = await getReporteById(id)
   } catch {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
@@ -44,8 +45,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000'
-  const token = generatePrintToken(params.id)
-  const printUrl = `${baseUrl}/reportes/print/${params.id}?token=${token}`
+  const token = generatePrintToken(id)
+  const printUrl = `${baseUrl}/reportes/print/${id}?token=${token}`
 
   console.log('PDF: navegando a', printUrl)
   const browser = await launchBrowser()
@@ -96,7 +97,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       },
     })
   } catch (error) {
-    console.error('Error generando PDF de reporte', params.id, error)
+    console.error('Error generando PDF de reporte', id, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Error al generar el PDF' },
       { status: 500 }

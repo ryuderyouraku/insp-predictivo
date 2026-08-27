@@ -12,10 +12,11 @@ import { CriterioTable } from '@/components/CriterioTable'
 import { PoleaDiagnosticoBlock } from '@/components/PoleaDiagnosticoBlock'
 import { DeleteReporteButton } from './DeleteReporteButton'
 
-export default async function ReporteDetailPage({ params }: { params: { slug: string } }) {
+export default async function ReporteDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const user = await requireUser()
 
-  const reporte = await getReporteBySlug(params.slug)
+  const reporte = await getReporteBySlug(slug)
   if (!reporte) notFound()
   const canDelete = canManageFaja(user, reporte.faja)
   const resumen = resumirReporte(reporte)

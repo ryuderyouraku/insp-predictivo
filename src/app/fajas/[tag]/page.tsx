@@ -14,9 +14,10 @@ import { TrendChart } from '@/components/TrendChart'
 import { CondicionBadge } from '@/components/CondicionBadge'
 import { buildReporteSlug } from '@/lib/reporteSlug'
 
-export default async function FajaDetailPage({ params }: { params: { tag: string } }) {
+export default async function FajaDetailPage({ params }: { params: Promise<{ tag: string }> }) {
+  const { tag } = await params
   const user = await requireUser()
-  const faja = await getFajaByTag(params.tag)
+  const faja = await getFajaByTag(tag)
   if (!faja) notFound()
   const reportesCount = await countReportesByFaja(faja.id)
   const historico = await getHistoricoByFaja(faja.id)

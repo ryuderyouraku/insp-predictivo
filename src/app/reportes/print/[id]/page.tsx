@@ -16,12 +16,14 @@ export default async function ReportePrintPage({
   params,
   searchParams,
 }: {
-  params: { id: string }
-  searchParams: { token?: string }
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ token?: string }>
 }) {
-  if (!searchParams.token) notFound()
+  const { id } = await params
+  const { token } = await searchParams
+  if (!token) notFound()
 
-  const reporte = await getReporteForPrint(params.id, searchParams.token)
+  const reporte = await getReporteForPrint(id, token)
   if (!reporte) notFound()
   const historico = await getHistoricoByFaja(reporte.fajaId)
   const resumen = resumirReporte(reporte)

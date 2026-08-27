@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { validatePasswordSetToken } from '@/server/actions/passwordSetToken'
 import { SetPasswordForm } from './SetPasswordForm'
 
-export default async function SetPasswordPage({ searchParams }: { searchParams: { token?: string } }) {
-  const token = searchParams.token ?? ''
+export default async function SetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
+  const token = (await searchParams).token ?? ''
   const status = token ? await validatePasswordSetToken(token) : { valid: false }
 
   return (
