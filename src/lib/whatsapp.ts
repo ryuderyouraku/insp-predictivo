@@ -61,16 +61,6 @@ async function sendNotifyTemplate(phone: string, bodyText: string): Promise<void
   })
 }
 
-export async function sendInviteWhatsApp(user: Pick<User, 'name' | 'phone'>, token: string): Promise<void> {
-  if (!user.phone) return
-  const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000'
-  const link = `${baseUrl}/set-password?token=${token}`
-  await sendNotifyTemplate(
-    user.phone,
-    `Hola ${user.name}, fuiste invitado a Termografía. Crea tu contraseña aquí: ${link}`
-  )
-}
-
 export async function sendWelcomeWhatsApp(user: Pick<User, 'name' | 'phone'>): Promise<void> {
   if (!user.phone) return
   await sendNotifyTemplate(

@@ -16,16 +16,17 @@ periódicos de inspección termográfica a chumaceras de poleas.
 3. `DATABASE_URL` / `DIRECT_URL`: connection strings de tu base Postgres.
    - Con Neon: `DATABASE_URL` es la connection string *pooled* (host con sufijo `-pooler`), y `DIRECT_URL` es la misma pero sin `-pooler` en el host — Prisma la necesita para correr migraciones, que no funcionan bien a través del pooler.
    - Con Postgres local u otro proveedor sin pooler: usa la misma URL en ambas variables.
-4. Completar `CLOUDINARY_*`, `NEXTAUTH_SECRET` y `PRINT_TOKEN_SECRET` con valores reales.
+4. Completar `CLOUDINARY_*` y `PRINT_TOKEN_SECRET` con valores reales. `CLERK_SECRET_KEY` / `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` se provisionan solos si instalas la integración de Clerk desde el Vercel Marketplace (`vercel integration add clerk` + `vercel env pull`); si no, sácalas del [dashboard de Clerk](https://dashboard.clerk.com/~/api-keys).
 5. `npm run prisma:migrate` (aplica las migraciones existentes contra tu base).
-6. Crear el primer usuario (queda como ADMIN), con cualquiera de estas dos opciones:
-   - `npm run prisma:seed` — crea `admin@insp.local` / `changeme123` (configurable vía `SEED_USER_EMAIL` / `SEED_USER_PASSWORD`), o lo deja como está si ese email ya existe.
-   - `scripts/create-admin.ts` vía variables de entorno, útil para crear o promover un admin en cualquier momento (incluida producción) sin dejar la contraseña en ningún archivo: `ADMIN_NAME=... ADMIN_EMAIL=... ADMIN_PASSWORD=... npx tsx scripts/create-admin.ts`
-7. `npm run dev` y abrir `http://localhost:3000`
+6. Crear el primer usuario (queda como ADMIN, sin contraseña — Clerk la maneja), con cualquiera de estas dos opciones:
+   - `npm run prisma:seed` — crea la fila `admin@insp.local` (configurable vía `SEED_ADMIN_EMAIL`), o lo deja como está si ese email ya existe.
+   - `scripts/create-admin.ts` vía variables de entorno, útil para crear o promover un admin en cualquier momento (incluida producción): `ADMIN_NAME=... ADMIN_EMAIL=... npx tsx scripts/create-admin.ts`
+7. Regístrate en `/sign-in` con ese mismo email — el primer login vincula tu cuenta de Clerk a esa fila (ver `src/lib/session.ts`).
+8. `npm run dev` y abrir `http://localhost:3000`
 
 ## Cuentas y roles
 
-Cada usuario tiene un rol: `ADMIN` o `USER` (por defecto). Los `ADMIN` ven el enlace "Administración" en la barra de navegación y acceden a `/admin`, donde pueden crear, editar, resetear la contraseña y eliminar cuentas. La ruta está protegida en el middleware (`src/middleware.ts`) y cada server action de usuarios (`src/server/actions/users.ts`) vuelve a validar el rol server-side.
+Cada usuario tiene un rol: `ADMIN`, `SUPERVISOR`, `INSPECTOR` o `CLIENTE`. Los `ADMIN` ven el enlace "Administración" en la barra de navegación y acceden a `/admin`, donde pueden crear (invitar por email vía Clerk), editar y eliminar cuentas. La ruta está protegida en `src/proxy.ts` y cada server action de usuarios (`src/server/actions/users.ts`) vuelve a validar el rol server-side contra Postgres — la fuente de verdad de permisos, no Clerk.
 
 ## Tests
 
@@ -42,7 +43,7 @@ En local usa el paquete `puppeteer` completo (descarga su propio Chromium). En V
 Pensado para Vercel. Configura estas variables de entorno en el proyecto de Vercel (no basta con tenerlas solo en `.env` local):
 
 - `DATABASE_URL`, `DIRECT_URL` (Neon)
-- `NEXTAUTH_URL` (la URL pública de producción), `NEXTAUTH_SECRET`
+- `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - `PRINT_TOKEN_SECRET`
 - `APP_BASE_URL` (la misma URL pública de producción, la usa la ruta de PDF para navegar a la vista de impresión)

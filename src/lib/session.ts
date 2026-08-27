@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from './auth'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
 import type { ActorUser } from './permissions'
 
@@ -11,14 +10,36 @@ const ACTOR_SELECT = {
 } as const
 
 /**
- * Reads role/contratistaId/clienteId straight from the database rather than the JWT,
- * so that an admin editing someone's role or contratista takes effect immediately
- * instead of waiting for their token to expire. The JWT is only used for UI decisions.
+ * Reads role/contratistaId/clienteId from Postgres (not Clerk's publicMetadata), so an admin
+ * editing someone's role/contratista takes effect immediately instead of waiting for a token
+ * refresh. On a user's first request after accepting their invite, links their Clerk account to
+ * the User row an admin already created for them, matched by email (just-in-time) — nobody
+ * without a row created by an admin can gain access this way: an unmatched email returns null and
+ * every caller fails closed.
  */
 export async function getCurrentUser(): Promise<ActorUser | null> {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return null
-  return prisma.user.findUnique({ where: { id: session.user.id }, select: ACTOR_SELECT })
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const existing = await prisma.user.findUnique({ where: { clerkId: userId }, select: ACTOR_SELECT })
+  if (existing) return existing
+
+  const clerk = await clerkClient()
+  const clerkUser = await clerk.users.getUser(userId)
+  const email = clerkUser.primaryEmailAddress?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress
+  if (!email) return null
+
+  const linked = await prisma.user.updateMany({
+    where: { email: email.toLowerCase(), clerkId: null },
+    data: { clerkId: userId },
+  })
+  if (linked.count === 0) return null
+
+  const user = await prisma.user.findUnique({ where: { clerkId: userId }, select: ACTOR_SELECT })
+  // Refresh Clerk's publicMetadata in case an admin changed the role while the invite was
+  // still pending — the invitation's publicMetadata snapshot could otherwise be stale.
+  if (user) await clerk.users.updateUser(userId, { publicMetadata: { role: user.role } })
+  return user
 }
 
 export async function requireUser(): Promise<ActorUser> {

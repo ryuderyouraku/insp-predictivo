@@ -2,19 +2,21 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useUser, useClerk } from '@clerk/nextjs'
 import { useState } from 'react'
 
 export function NavBar() {
-  const { data: session, status } = useSession()
+  const { user, isLoaded, isSignedIn } = useUser()
+  const { signOut } = useClerk()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  if (status !== 'authenticated') return null
+  if (!isLoaded || !isSignedIn) return null
 
-  const role = session.user?.role
+  const role = user.publicMetadata.role
   const isAdmin = role === 'ADMIN'
   const isSupervisor = role === 'SUPERVISOR'
+  const displayName = user.fullName ?? user.primaryEmailAddress?.emailAddress ?? ''
 
   const links = [
     { href: '/fajas', label: 'Fajas' },
@@ -52,8 +54,11 @@ export function NavBar() {
         </div>
 
         <div className="hidden items-center gap-3 text-sm text-gray-500 sm:flex">
-          <span className="max-w-[12rem] truncate">{session.user?.name ?? session.user?.email}</span>
-          <button onClick={() => signOut({ callbackUrl: '/login' })} className="rounded border px-2 py-1 hover:bg-gray-50">
+          <span className="max-w-[12rem] truncate">{displayName}</span>
+          <button
+            onClick={() => signOut({ redirectUrl: '/sign-in' })}
+            className="rounded border px-2 py-1 hover:bg-gray-50"
+          >
             Salir
           </button>
         </div>
@@ -86,9 +91,9 @@ export function NavBar() {
             )
           })}
           <div className="mt-2 flex items-center justify-between border-t pt-2 text-gray-500">
-            <span className="truncate">{session.user?.name ?? session.user?.email}</span>
+            <span className="truncate">{displayName}</span>
             <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => signOut({ redirectUrl: '/sign-in' })}
               className="rounded border px-2 py-1 hover:bg-gray-50"
             >
               Salir

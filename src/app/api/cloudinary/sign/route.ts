@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@clerk/nextjs/server'
 import { generateUploadSignature } from '@/lib/cloudinary'
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const { userId } = await auth()
+  if (!userId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
   const body = (await request.json()) as { folder?: string }

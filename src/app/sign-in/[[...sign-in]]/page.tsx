@@ -1,7 +1,7 @@
 import Image from 'next/image'
-import { LoginForm } from './LoginForm'
+import { SignIn } from '@clerk/nextjs'
 
-export default function LoginPage() {
+export default function SignInPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950">
       <Image
@@ -16,9 +16,6 @@ export default function LoginPage() {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center gap-10 px-6 py-12 md:flex-row md:items-center md:justify-between md:gap-8 md:px-12 lg:px-16">
         <div className="max-w-lg animate-fade-in-up text-white">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white">
-            
-          </p>
           <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">
             Termografía a chumaceras de fajas transportadoras
           </h1>
@@ -30,11 +27,14 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full animate-fade-in-up [animation-delay:100ms] [animation-fill-mode:both] md:w-auto md:shrink-0">
-          <div className="w-full rounded-2xl border border-white/10 bg-slate-950/60 p-7 shadow-2xl shadow-black/50 backdrop-blur-md sm:max-w-sm md:w-96">
-            <h2 className="mb-1 text-xl font-semibold text-white">Iniciar sesión</h2>
-            <p className="mb-6 text-sm text-slate-400">Ingresa con tu cuenta para continuar.</p>
-            <LoginForm />
-          </div>
+          <SignIn
+            appearance={{
+              elements: {
+                rootBox: 'w-full sm:max-w-sm md:w-96',
+                card: 'w-full rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/50 backdrop-blur-md',
+              },
+            }}
+          />
         </div>
       </div>
     </main>

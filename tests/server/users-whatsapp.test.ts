@@ -2,87 +2,87 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
 import { setActor, ADMIN_ACTOR, supervisorActor } from '../helpers/actor'
 
-const sendInviteWhatsApp = vi.fn()
 const sendWelcomeWhatsApp = vi.fn()
 vi.mock('@/lib/whatsapp', () => ({
-  sendInviteWhatsApp: (...args: unknown[]) => sendInviteWhatsApp(...args),
   sendWelcomeWhatsApp: (...args: unknown[]) => sendWelcomeWhatsApp(...args),
 }))
 
-const { createUser, updateUser, toggleWhatsappBotAccess, resendInvite } = await import(
+const createInvitation = vi.fn().mockResolvedValue(undefined)
+const updateClerkUser = vi.fn().mockResolvedValue(undefined)
+const deleteClerkUser = vi.fn().mockResolvedValue(undefined)
+vi.mock('@clerk/nextjs/server', () => ({
+  clerkClient: async () => ({
+    invitations: { createInvitation: (...args: unknown[]) => createInvitation(...args) },
+    users: {
+      updateUser: (...args: unknown[]) => updateClerkUser(...args),
+      deleteUser: (...args: unknown[]) => deleteClerkUser(...args),
+    },
+  }),
+}))
+
+const { createUser, updateUser, toggleWhatsappBotAccess, resendInvite, deleteUser } = await import(
   '../../src/server/actions/users'
 )
 // Dynamic import (rather than a static one) so it resolves strictly after the vi.mock
-// call above has been hoisted and registered — avoids relying on Vitest's hoisting order.
+// calls above have been hoisted and registered — avoids relying on Vitest's hoisting order.
 
 const EMAIL_PREFIX = 'whatsapp-test-'
 
-describe('users + WhatsApp invite/bot access', () => {
+describe('users + Clerk invite / WhatsApp bot access', () => {
   beforeEach(() => {
     setActor(ADMIN_ACTOR)
-    sendInviteWhatsApp.mockClear()
     sendWelcomeWhatsApp.mockClear()
+    createInvitation.mockClear()
+    updateClerkUser.mockClear()
+    deleteClerkUser.mockClear()
   })
 
   afterEach(async () => {
     await prisma.user.deleteMany({ where: { email: { startsWith: EMAIL_PREFIX } } })
   })
 
-  it('createUser with a phone sends an invite and marks the account pending', async () => {
+  it('createUser sends a Clerk invitation and starts unlinked', async () => {
     const email = `${EMAIL_PREFIX}invite@example.com`
-    const user = await createUser({
-      name: 'Nuevo',
-      email,
-      password: 'password123',
-      role: 'ADMIN',
-      phone: '+51987000001',
-    })
+    const user = await createUser({ name: 'Nuevo', email, role: 'ADMIN' })
 
-    expect(user.mustSetPassword).toBe(true)
+    expect(user.clerkId).toBeNull()
+    expect(createInvitation).toHaveBeenCalledTimes(1)
+    expect(createInvitation.mock.calls[0][0]).toMatchObject({
+      emailAddress: email,
+      publicMetadata: { role: 'ADMIN' },
+    })
+  })
+
+  it('createUser with a phone enables the bot and sends a welcome message', async () => {
+    const email = `${EMAIL_PREFIX}phone@example.com`
+    const user = await createUser({ name: 'Con Tel', email, role: 'ADMIN', phone: '+51987000001' })
+
     expect(user.whatsappBotEnabled).toBe(true)
-    expect(sendInviteWhatsApp).toHaveBeenCalledTimes(1)
-    expect(sendInviteWhatsApp.mock.calls[0][0]).toMatchObject({ phone: '+51987000001' })
-
-    const token = await prisma.passwordSetToken.findFirst({ where: { userId: user.id } })
-    expect(token).not.toBeNull()
+    expect(sendWelcomeWhatsApp).toHaveBeenCalledTimes(1)
+    expect(sendWelcomeWhatsApp.mock.calls[0][0]).toMatchObject({ phone: '+51987000001' })
   })
 
-  it('createUser without a phone behaves as before (no invite)', async () => {
+  it('createUser without a phone does not touch the bot', async () => {
     const email = `${EMAIL_PREFIX}no-phone@example.com`
-    const user = await createUser({ name: 'Sin Tel', email, password: 'password123', role: 'ADMIN' })
+    const user = await createUser({ name: 'Sin Tel', email, role: 'ADMIN' })
 
-    expect(user.mustSetPassword).toBe(false)
     expect(user.whatsappBotEnabled).toBe(false)
-    expect(sendInviteWhatsApp).not.toHaveBeenCalled()
+    expect(sendWelcomeWhatsApp).not.toHaveBeenCalled()
   })
 
-  it('updateUser adding a phone to an already-active user sends a welcome message, not an invite', async () => {
+  it('updateUser adding a phone sends a welcome message', async () => {
     const email = `${EMAIL_PREFIX}welcome@example.com`
-    const user = await createUser({ name: 'Activo', email, password: 'password123', role: 'ADMIN' })
-    expect(user.mustSetPassword).toBe(false)
+    const user = await createUser({ name: 'Activo', email, role: 'ADMIN' })
 
-    const updated = await updateUser(user.id, {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: '+51987000002',
-    })
+    const updated = await updateUser(user.id, { name: user.name, email: user.email, role: user.role, phone: '+51987000002' })
 
-    expect(updated.mustSetPassword).toBe(false)
     expect(updated.whatsappBotEnabled).toBe(true)
     expect(sendWelcomeWhatsApp).toHaveBeenCalledTimes(1)
-    expect(sendInviteWhatsApp).not.toHaveBeenCalled()
   })
 
   it('updateUser removing the phone turns off bot access', async () => {
     const email = `${EMAIL_PREFIX}remove@example.com`
-    const user = await createUser({
-      name: 'Con Tel',
-      email,
-      password: 'password123',
-      role: 'ADMIN',
-      phone: '+51987000003',
-    })
+    const user = await createUser({ name: 'Con Tel', email, role: 'ADMIN', phone: '+51987000003' })
     expect(user.whatsappBotEnabled).toBe(true)
 
     const updated = await updateUser(user.id, { name: user.name, email: user.email, role: user.role })
@@ -90,21 +90,27 @@ describe('users + WhatsApp invite/bot access', () => {
     expect(updated.whatsappBotEnabled).toBe(false)
   })
 
+  it('updateUser only pushes the role to Clerk once the user has linked (clerkId set)', async () => {
+    const email = `${EMAIL_PREFIX}unlinked-role@example.com`
+    const user = await createUser({ name: 'Sin Vincular', email, role: 'ADMIN' })
+
+    await updateUser(user.id, { name: user.name, email: user.email, role: 'ADMIN' })
+    expect(updateClerkUser).not.toHaveBeenCalled()
+
+    await prisma.user.update({ where: { id: user.id }, data: { clerkId: 'clerk_test_123' } })
+    await updateUser(user.id, { name: user.name, email: user.email, role: 'ADMIN' })
+    expect(updateClerkUser).toHaveBeenCalledWith('clerk_test_123', { publicMetadata: { role: 'ADMIN' } })
+  })
+
   it('toggleWhatsappBotAccess rejects enabling access for a user without a phone', async () => {
     const email = `${EMAIL_PREFIX}toggle-nophone@example.com`
-    const user = await createUser({ name: 'Sin Tel 2', email, password: 'password123', role: 'ADMIN' })
+    const user = await createUser({ name: 'Sin Tel 2', email, role: 'ADMIN' })
     await expect(toggleWhatsappBotAccess(user.id, true)).rejects.toThrow('teléfono')
   })
 
   it('toggleWhatsappBotAccess lets an admin revoke and re-grant access', async () => {
     const email = `${EMAIL_PREFIX}toggle@example.com`
-    const user = await createUser({
-      name: 'Toggle',
-      email,
-      password: 'password123',
-      role: 'ADMIN',
-      phone: '+51987000004',
-    })
+    const user = await createUser({ name: 'Toggle', email, role: 'ADMIN', phone: '+51987000004' })
     expect(user.whatsappBotEnabled).toBe(true)
 
     await toggleWhatsappBotAccess(user.id, false)
@@ -116,37 +122,31 @@ describe('users + WhatsApp invite/bot access', () => {
     expect(fresh.whatsappBotEnabled).toBe(true)
   })
 
-  it('resendInvite only works while the account is still pending activation', async () => {
+  it('resendInvite only works while the account is still unlinked', async () => {
     const email = `${EMAIL_PREFIX}resend@example.com`
-    const pending = await createUser({
-      name: 'Pendiente',
-      email,
-      password: 'password123',
-      role: 'ADMIN',
-      phone: '+51987000005',
-    })
-    sendInviteWhatsApp.mockClear()
+    const pending = await createUser({ name: 'Pendiente', email, role: 'ADMIN' })
+    createInvitation.mockClear()
 
     await resendInvite(pending.id)
-    expect(sendInviteWhatsApp).toHaveBeenCalledTimes(1)
+    expect(createInvitation).toHaveBeenCalledTimes(1)
 
-    const activeEmail = `${EMAIL_PREFIX}resend-active@example.com`
-    const active = await createUser({ name: 'Activo 2', email: activeEmail, password: 'password123', role: 'ADMIN' })
-    // Give the already-active user a phone via the "welcome" path (updateUser), so it has a
-    // phone but mustSetPassword stays false — the case resendInvite should still reject.
-    await updateUser(active.id, { name: active.name, email: active.email, role: active.role, phone: '+51987000099' })
-    await expect(resendInvite(active.id)).rejects.toThrow('ya activó')
+    await prisma.user.update({ where: { id: pending.id }, data: { clerkId: 'clerk_test_456' } })
+    await expect(resendInvite(pending.id)).rejects.toThrow('ya activó')
+  })
+
+  it('deleteUser also deletes the Clerk account once linked', async () => {
+    const email = `${EMAIL_PREFIX}delete@example.com`
+    const user = await createUser({ name: 'A Borrar', email, role: 'ADMIN' })
+    await prisma.user.update({ where: { id: user.id }, data: { clerkId: 'clerk_test_789' } })
+
+    await deleteUser(user.id)
+    expect(deleteClerkUser).toHaveBeenCalledWith('clerk_test_789')
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull()
   })
 
   it('a supervisor cannot manage a phone/bot access for an ADMIN target', async () => {
     const email = `${EMAIL_PREFIX}scoped-admin@example.com`
-    const admin = await createUser({
-      name: 'Otro Admin',
-      email,
-      password: 'password123',
-      role: 'ADMIN',
-      phone: '+51987000006',
-    })
+    const admin = await createUser({ name: 'Otro Admin', email, role: 'ADMIN', phone: '+51987000006' })
 
     setActor(supervisorActor('nonexistent-contratista'))
     await expect(toggleWhatsappBotAccess(admin.id, false)).rejects.toThrow('No autorizado')

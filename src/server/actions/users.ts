@@ -1,17 +1,16 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
+import { clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
 import { canAssignRole, canManageUser } from '@/lib/permissions'
 import type { ActorUser } from '@/lib/permissions'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
 import { normalizePhone, isValidPhone } from '@/lib/phone'
-import { createPasswordSetToken } from '@/lib/passwordSetToken'
-import { sendInviteWhatsApp, sendWelcomeWhatsApp } from '@/lib/whatsapp'
+import { sendWelcomeWhatsApp } from '@/lib/whatsapp'
 import type { Role, User } from '@prisma/client'
 
-export type SafeUser = Omit<User, 'passwordHash'> & {
+export type SafeUser = User & {
   contratista: { nombre: string } | null
   cliente: { nombre: string } | null
 }
@@ -20,12 +19,12 @@ const USER_SELECT = {
   id: true,
   name: true,
   email: true,
+  clerkId: true,
   role: true,
   contratistaId: true,
   clienteId: true,
   createdAt: true,
   phone: true,
-  mustSetPassword: true,
   whatsappBotEnabled: true,
   contratista: { select: { nombre: true } },
   cliente: { select: { nombre: true } },
@@ -84,7 +83,6 @@ export async function listUsers(): Promise<SafeUser[]> {
 export interface CreateUserInput {
   name: string
   email: string
-  password: string
   role: Role
   contratistaId?: string
   clienteId?: string
@@ -102,7 +100,6 @@ export async function createUser(input: CreateUserInput): Promise<SafeUser> {
   const email = input.email.trim().toLowerCase()
   if (!name) throw new Error('El nombre es obligatorio')
   if (!email) throw new Error('El email es obligatorio')
-  if (input.password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres')
 
   const scope = resolveScope(actor, input.role, input)
   const phone = resolvePhone(input.phone)
@@ -114,24 +111,27 @@ export async function createUser(input: CreateUserInput): Promise<SafeUser> {
     if (existingPhone) throw new Error(`Ya existe un usuario con el teléfono ${phone}`)
   }
 
-  const passwordHash = await bcrypt.hash(input.password, 10)
   const user = await prisma.user.create({
     data: {
       name,
       email,
-      passwordHash,
       role: input.role,
       ...scope,
       phone,
-      mustSetPassword: phone !== null,
       whatsappBotEnabled: phone !== null,
     },
     select: USER_SELECT,
   })
 
+  const clerk = await clerkClient()
+  await clerk.invitations.createInvitation({
+    emailAddress: email,
+    publicMetadata: { role: input.role },
+    redirectUrl: `${process.env.APP_BASE_URL ?? 'http://localhost:3000'}/sign-in`,
+  })
+
   if (phone) {
-    const token = await createPasswordSetToken(user.id)
-    await sendInviteWhatsApp({ name: user.name, phone }, token)
+    await sendWelcomeWhatsApp({ name: user.name, phone })
   }
 
   safeRevalidatePath('/admin')
@@ -184,28 +184,17 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
     select: USER_SELECT,
   })
 
+  if (target.clerkId) {
+    const clerk = await clerkClient()
+    await clerk.users.updateUser(target.clerkId, { publicMetadata: { role: input.role } })
+  }
+
   if (phoneJustAdded && phone) {
-    if (target.mustSetPassword) {
-      const token = await createPasswordSetToken(userId)
-      await sendInviteWhatsApp({ name: user.name, phone }, token)
-    } else {
-      await sendWelcomeWhatsApp({ name: user.name, phone })
-    }
+    await sendWelcomeWhatsApp({ name: user.name, phone })
   }
 
   safeRevalidatePath('/admin')
   return user
-}
-
-export async function resetUserPassword(userId: string, newPassword: string): Promise<void> {
-  const actor = await requireUser()
-  assertManager(actor)
-  const target = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
-  if (!canManageUser(actor, target)) throw new Error('No autorizado para editar este usuario')
-  if (newPassword.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres')
-  const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({ where: { id: userId }, data: { passwordHash, mustSetPassword: false } })
-  safeRevalidatePath('/admin')
 }
 
 /** Grants/revokes bot access without touching the phone number itself. */
@@ -219,16 +208,19 @@ export async function toggleWhatsappBotAccess(userId: string, enabled: boolean):
   safeRevalidatePath('/admin')
 }
 
-/** Re-sends the WhatsApp invite with a fresh token — for users still pending activation. */
+/** Re-sends the Clerk invite — for users who haven't accepted it yet (clerkId still null). */
 export async function resendInvite(userId: string): Promise<void> {
   const actor = await requireUser()
   assertManager(actor)
   const target = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
   if (!canManageUser(actor, target)) throw new Error('No autorizado para editar este usuario')
-  if (!target.phone) throw new Error('Este usuario no tiene un teléfono registrado')
-  if (!target.mustSetPassword) throw new Error('Este usuario ya activó su cuenta')
-  const token = await createPasswordSetToken(userId)
-  await sendInviteWhatsApp({ name: target.name, phone: target.phone }, token)
+  if (target.clerkId) throw new Error('Este usuario ya activó su cuenta')
+  const clerk = await clerkClient()
+  await clerk.invitations.createInvitation({
+    emailAddress: target.email,
+    publicMetadata: { role: target.role },
+    redirectUrl: `${process.env.APP_BASE_URL ?? 'http://localhost:3000'}/sign-in`,
+  })
 }
 
 export async function deleteUser(userId: string): Promise<void> {
@@ -240,5 +232,9 @@ export async function deleteUser(userId: string): Promise<void> {
   const target = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
   if (!canManageUser(actor, target)) throw new Error('No autorizado para eliminar este usuario')
   await prisma.user.delete({ where: { id: userId } })
+  if (target.clerkId) {
+    const clerk = await clerkClient()
+    await clerk.users.deleteUser(target.clerkId).catch(() => {})
+  }
   safeRevalidatePath('/admin')
 }

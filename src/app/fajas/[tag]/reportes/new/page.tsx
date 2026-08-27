@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { currentUser } from '@clerk/nextjs/server'
 import { getFajaByTag } from '@/server/actions/fajas'
 import { requireUser } from '@/lib/session'
 import { canCreateReporte } from '@/lib/permissions'
@@ -15,8 +14,8 @@ export default async function NewReportePage({ params }: { params: Promise<{ tag
   if (!faja) notFound()
   if (!canCreateReporte(user, faja)) redirect(`/fajas/${encodeURIComponent(faja.tag)}`)
 
-  const [session, supervisores] = await Promise.all([
-    getServerSession(authOptions),
+  const [clerkUser, supervisores] = await Promise.all([
+    currentUser(),
     listSupervisoresDeContratista(faja.contratistaId),
   ])
 
@@ -26,7 +25,7 @@ export default async function NewReportePage({ params }: { params: Promise<{ tag
         ← Volver a {faja.tag}
       </Link>
       <h1 className="text-xl font-semibold">Nuevo reporte — {faja.tag}</h1>
-      <ReporteForm faja={faja} currentUserName={session?.user?.name ?? ''} supervisores={supervisores} />
+      <ReporteForm faja={faja} currentUserName={clerkUser?.fullName ?? ''} supervisores={supervisores} />
     </main>
   )
 }

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   deleteUser,
-  resetUserPassword,
   updateUser,
   toggleWhatsappBotAccess,
   resendInvite,
@@ -39,7 +38,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   const assignableRoles: Role[] = actorRole === 'ADMIN' ? ['ADMIN', 'SUPERVISOR', 'INSPECTOR', 'CLIENTE'] : ['SUPERVISOR', 'INSPECTOR']
 
   const [editing, setEditing] = useState(false)
-  const [resetting, setResetting] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email)
@@ -47,7 +45,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   const [role, setRole] = useState<Role>(user.role)
   const [contratistaId, setContratistaId] = useState(user.contratistaId ?? contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(user.clienteId ?? clientes[0]?.id ?? '')
-  const [newPassword, setNewPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -96,21 +93,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al reenviar la invitación')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleResetPassword() {
-    setError(null)
-    setBusy(true)
-    try {
-      await resetUserPassword(user.id, newPassword)
-      setNewPassword('')
-      setResetting(false)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al resetear contraseña')
     } finally {
       setBusy(false)
     }
@@ -186,23 +168,26 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
       <td className="px-4 py-3">{user.name}</td>
       <td className="px-4 py-3">
         {user.email}
-        {user.phone && (
+        {(!user.clerkId || user.phone) && (
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
-            <span>{user.phone}</span>
-            {user.mustSetPassword ? (
+            {!user.clerkId && (
               <span className="rounded-full bg-yellow-100 px-2 py-0.5 font-medium text-yellow-700">
-                Pendiente de activar
+                Invitación pendiente
               </span>
-            ) : (
-              <button
-                onClick={handleToggleBot}
-                disabled={busy}
-                className={`rounded-full px-2 py-0.5 font-medium disabled:opacity-50 ${
-                  user.whatsappBotEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                }`}
-              >
-                {user.whatsappBotEnabled ? 'Bot activo' : 'Bot desactivado'}
-              </button>
+            )}
+            {user.phone && (
+              <>
+                <span>{user.phone}</span>
+                <button
+                  onClick={handleToggleBot}
+                  disabled={busy}
+                  className={`rounded-full px-2 py-0.5 font-medium disabled:opacity-50 ${
+                    user.whatsappBotEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  {user.whatsappBotEnabled ? 'Bot activo' : 'Bot desactivado'}
+                </button>
+              </>
             )}
           </div>
         )}
@@ -219,10 +204,7 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
           <button onClick={() => setEditing(true)} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">
             Editar
           </button>
-          <button onClick={() => setResetting((v) => !v)} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">
-            Resetear contraseña
-          </button>
-          {user.phone && user.mustSetPassword && (
+          {!user.clerkId && (
             <button
               onClick={handleResendInvite}
               disabled={busy}
@@ -240,25 +222,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
             </button>
           )}
         </div>
-        {resetting && (
-          <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-            <input
-              type="password"
-              placeholder="Nueva contraseña"
-              className="rounded border px-2 py-1 text-sm"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              minLength={8}
-            />
-            <button
-              onClick={handleResetPassword}
-              disabled={busy || newPassword.length < 8}
-              className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-            >
-              Confirmar
-            </button>
-          </div>
-        )}
         {confirmingDelete && (
           <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-sm text-red-700">
             <span>¿Eliminar a {user.name}?</span>

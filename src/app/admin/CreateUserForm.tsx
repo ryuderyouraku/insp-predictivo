@@ -27,7 +27,6 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<Role>(assignableRoles[0])
   const [contratistaId, setContratistaId] = useState(contratistas[0]?.id ?? '')
@@ -48,7 +47,6 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
       await createUser({
         name,
         email,
-        password,
         role,
         contratistaId: needsContratista ? contratistaId : undefined,
         clienteId: needsCliente ? clienteId : undefined,
@@ -56,7 +54,6 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
       })
       setName('')
       setEmail('')
-      setPassword('')
       setPhone('')
       setRole(assignableRoles[0])
       setSuccess(true)
@@ -92,17 +89,6 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Contraseña</span>
-          <input
-            type="password"
-            className="w-full rounded border px-3 py-2"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={8}
-            required
-          />
-        </label>
-        <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Teléfono (WhatsApp, opcional)</span>
           <input
             type="tel"
@@ -112,7 +98,7 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
             onChange={(event) => setPhone(event.target.value)}
           />
           <span className="mt-1 block text-xs text-gray-400">
-            Si lo completas, le mandamos un WhatsApp para que cree su propia contraseña.
+            Si lo completas, le damos acceso al bot de WhatsApp para consultar sus reportes.
           </span>
         </label>
         <label className="block text-sm">
@@ -161,7 +147,7 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
       {error && <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       {success && (
         <p className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-          Cuenta creada correctamente.
+          Cuenta creada correctamente. Le enviamos una invitación por email.
         </p>
       )}
       <button

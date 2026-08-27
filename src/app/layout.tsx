@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
-import { Providers } from './Providers'
 import { NavBar } from '@/components/NavBar'
 
 export const metadata: Metadata = {
@@ -12,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className="bg-gray-50 text-gray-900">
-        <Providers>
+        <ClerkProvider signInUrl="/sign-in" signInFallbackRedirectUrl="/">
           <NavBar />
           {children}
-        </Providers>
+        </ClerkProvider>
       </body>
     </html>
   )
