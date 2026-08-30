@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { toAiMessages } from 'chat/ai'
 import { getBot } from '@/lib/whatsapp'
 import { resolveActorByPhone } from '@/server/bot/resolveUser'
@@ -45,5 +46,5 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const bot = await ensureBot()
   if (!bot) return new Response('WhatsApp no configurado', { status: 503 })
-  return bot.webhooks.whatsapp(request)
+  return bot.webhooks.whatsapp(request, { waitUntil: after })
 }

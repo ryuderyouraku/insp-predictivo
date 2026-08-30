@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { toAiMessages } from 'chat/ai'
 import { getTelegramBot } from '@/lib/telegram'
 import { resolveActorByTelegramId } from '@/server/bot/resolveUser'
@@ -70,5 +71,5 @@ export async function GET() {
 export async function POST(request: Request) {
   const bot = await ensureBot()
   if (!bot) return new Response('Telegram no configurado', { status: 503 })
-  return bot.webhooks.telegram(request)
+  return bot.webhooks.telegram(request, { waitUntil: after })
 }
