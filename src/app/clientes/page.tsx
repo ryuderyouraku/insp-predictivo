@@ -1,5 +1,6 @@
 import { listClientes } from '@/server/actions/clientes'
 import { ClienteForm } from './ClienteForm'
+import { ClienteRow } from './ClienteRow'
 
 export default async function ClientesPage() {
   const clientes = await listClientes()
@@ -14,17 +15,7 @@ export default async function ClientesPage() {
       ) : (
         <ul className="space-y-2">
           {clientes.map((cliente) => (
-            <li key={cliente.id} className="flex items-center gap-3 rounded border bg-white p-3">
-              {cliente.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={cliente.logoUrl} alt={cliente.nombre} className="h-10 w-10 object-contain" />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
-                  Sin logo
-                </div>
-              )}
-              <span>{cliente.nombre}</span>
-            </li>
+            <ClienteRow key={cliente.id} cliente={cliente} />
           ))}
         </ul>
       )}

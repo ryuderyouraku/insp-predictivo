@@ -1,5 +1,6 @@
 import { listContratistas } from '@/server/actions/contratistas'
 import { ContratistaForm } from './ContratistaForm'
+import { ContratistaRow } from './ContratistaRow'
 
 export default async function ContratistasPage() {
   const contratistas = await listContratistas()
@@ -14,17 +15,7 @@ export default async function ContratistasPage() {
       ) : (
         <ul className="space-y-2">
           {contratistas.map((contratista) => (
-            <li key={contratista.id} className="flex items-center gap-3 rounded border bg-white p-3">
-              {contratista.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={contratista.logoUrl} alt={contratista.nombre} className="h-10 w-10 object-contain" />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
-                  Sin logo
-                </div>
-              )}
-              <span>{contratista.nombre}</span>
-            </li>
+            <ContratistaRow key={contratista.id} contratista={contratista} />
           ))}
         </ul>
       )}
