@@ -14,14 +14,14 @@ export function ContratistaRow({ contratista }: { contratista: Contratista }) {
   async function handleDelete() {
     setError(null)
     setBusy(true)
-    try {
-      await deleteContratista(contratista.id)
+    const result = await deleteContratista(contratista.id)
+    if (result.ok) {
       router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar el contratista')
-      setBusy(false)
-      setConfirming(false)
+      return
     }
+    setError(result.error)
+    setBusy(false)
+    setConfirming(false)
   }
 
   return (

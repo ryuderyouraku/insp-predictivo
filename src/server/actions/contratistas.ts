@@ -26,7 +26,14 @@ export async function listContratistas(): Promise<Contratista[]> {
   return prisma.contratista.findMany({ orderBy: { nombre: 'asc' } })
 }
 
-export async function deleteContratista(id: string): Promise<void> {
+export type DeleteContratistaResult = { ok: true } | { ok: false; error: string }
+
+/**
+ * Returns a result object instead of throwing — Next.js redacts thrown Server Action
+ * errors to a generic digest-only message in production, so a validation error like
+ * this one needs to travel back as data, not an exception.
+ */
+export async function deleteContratista(id: string): Promise<DeleteContratistaResult> {
   await requireAdmin()
   const [fajas, usuarios] = await Promise.all([
     prisma.faja.count({ where: { contratistaId: id } }),
@@ -36,8 +43,9 @@ export async function deleteContratista(id: string): Promise<void> {
     const partes = []
     if (fajas > 0) partes.push(`${fajas} faja${fajas === 1 ? '' : 's'}`)
     if (usuarios > 0) partes.push(`${usuarios} usuario${usuarios === 1 ? '' : 's'}`)
-    throw new Error(`No se puede eliminar: tiene ${partes.join(' y ')} asociados. Reasígnalos primero.`)
+    return { ok: false, error: `No se puede eliminar: tiene ${partes.join(' y ')} asociados. Reasígnalos primero.` }
   }
   await prisma.contratista.delete({ where: { id } })
   safeRevalidatePath('/contratistas')
+  return { ok: true }
 }

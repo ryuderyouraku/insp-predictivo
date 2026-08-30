@@ -14,14 +14,14 @@ export function ClienteRow({ cliente }: { cliente: Cliente }) {
   async function handleDelete() {
     setError(null)
     setBusy(true)
-    try {
-      await deleteCliente(cliente.id)
+    const result = await deleteCliente(cliente.id)
+    if (result.ok) {
       router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar el cliente')
-      setBusy(false)
-      setConfirming(false)
+      return
     }
+    setError(result.error)
+    setBusy(false)
+    setConfirming(false)
   }
 
   return (
