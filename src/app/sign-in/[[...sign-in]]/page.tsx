@@ -47,11 +47,16 @@ export default function SignInPage() {
                 formFieldInput: 'border border-white/15 bg-slate-900/60 text-white placeholder:text-slate-500',
                 formButtonPrimary: 'bg-sky-500 text-white hover:bg-sky-400',
                 footerActionLink: 'text-sky-400 hover:text-sky-300',
+                headerSubtitle: 'hidden',
               },
             }}
           />
         </div>
       </div>
+
+      <footer className="absolute inset-x-0 bottom-4 z-10 text-center text-xs text-slate-400">
+        Hecho por Nelson Larico
+      </footer>
     </main>
   )
 }
