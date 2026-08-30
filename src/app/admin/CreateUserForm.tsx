@@ -27,7 +27,7 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [telegramUsername, setTelegramUsername] = useState('')
   const [role, setRole] = useState<Role>(assignableRoles[0])
   const [contratistaId, setContratistaId] = useState(contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
@@ -50,11 +50,11 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
         role,
         contratistaId: needsContratista ? contratistaId : undefined,
         clienteId: needsCliente ? clienteId : undefined,
-        phone: phone.trim() || undefined,
+        telegramUsername: telegramUsername.trim() || undefined,
       })
       setName('')
       setEmail('')
-      setPhone('')
+      setTelegramUsername('')
       setRole(assignableRoles[0])
       setSuccess(true)
       router.refresh()
@@ -89,16 +89,17 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-gray-600">Teléfono (WhatsApp, opcional)</span>
+          <span className="mb-1 block text-gray-600">Usuario de Telegram (opcional)</span>
           <input
-            type="tel"
-            placeholder="+51987654321"
+            type="text"
+            placeholder="nelson_lq"
             className="w-full rounded border px-3 py-2"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            value={telegramUsername}
+            onChange={(event) => setTelegramUsername(event.target.value)}
           />
           <span className="mt-1 block text-xs text-gray-400">
-            Si lo completas, le damos acceso al bot de WhatsApp para consultar sus reportes.
+            Si lo completas, podrá escribirle al bot de Telegram para consultar sus reportes en cuanto le hable
+            (le pedirá que registres su @usuario primero).
           </span>
         </label>
         <label className="block text-sm">
