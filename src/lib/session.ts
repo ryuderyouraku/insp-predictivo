@@ -1,4 +1,5 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import { prisma } from './prisma'
 import type { ActorUser } from './permissions'
 
@@ -42,16 +43,27 @@ export async function getCurrentUser(): Promise<ActorUser | null> {
   return user
 }
 
+/**
+ * Redirects instead of throwing: without a session (or one that briefly hasn't finished
+ * syncing right after an OAuth redirect), the right move is to send the visitor back to
+ * `/sign-in`, not crash the page with an uncaught error.
+ */
 export async function requireUser(): Promise<ActorUser> {
   const user = await getCurrentUser()
-  if (!user) throw new Error('No autorizado: inicia sesión')
+  if (!user) redirect('/sign-in')
   return user
 }
 
+/**
+ * Only reachable by an already-signed-in user whose role doesn't qualify — `proxy.ts` blocks
+ * this at the route level for normal navigation, so this is a defense-in-depth fallback.
+ * Redirects to `/fajas` (same as `proxy.ts`'s `deny()`) instead of `/sign-in`, since the user
+ * is authenticated, just not authorized.
+ */
 export async function requireAdmin(): Promise<ActorUser> {
   const user = await requireUser()
   if (user.role !== 'ADMIN') {
-    throw new Error('No autorizado: se requiere rol de administrador')
+    redirect('/fajas')
   }
   return user
 }

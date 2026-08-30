@@ -9,6 +9,7 @@ import {
   resendInvite,
   type SafeUser,
 } from '@/server/actions/users'
+import { unlinkTelegram } from '@/server/actions/telegram'
 import type { Cliente, Contratista, Role } from '@prisma/client'
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -45,6 +46,7 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   const [role, setRole] = useState<Role>(user.role)
   const [contratistaId, setContratistaId] = useState(user.contratistaId ?? contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(user.clienteId ?? clientes[0]?.id ?? '')
+  const [telegramUsername, setTelegramUsername] = useState(user.telegramUsername ?? '')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -62,6 +64,7 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
         contratistaId: needsContratista ? contratistaId : undefined,
         clienteId: needsCliente ? clienteId : undefined,
         phone: phone.trim() || undefined,
+        telegramUsername: telegramUsername.trim() || undefined,
       })
       setEditing(false)
       router.refresh()
@@ -80,6 +83,20 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cambiar el acceso al bot')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleUnlinkTelegram() {
+    setError(null)
+    setBusy(true)
+    try {
+      await unlinkTelegram(user.id)
+      setTelegramUsername('')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al desvincular Telegram')
     } finally {
       setBusy(false)
     }
@@ -122,6 +139,12 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
               placeholder="Teléfono, ej: +51987654321"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+            />
+            <input
+              className="rounded border px-2 py-1"
+              placeholder="Usuario de Telegram, ej: nelson_lq"
+              value={telegramUsername}
+              onChange={(e) => setTelegramUsername(e.target.value)}
             />
             <select className="rounded border px-2 py-1" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               {assignableRoles.map((r) => (
@@ -188,6 +211,24 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
                   {user.whatsappBotEnabled ? 'Bot activo' : 'Bot desactivado'}
                 </button>
               </>
+            )}
+          </div>
+        )}
+        {(user.telegramUserId || user.telegramUsername) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+            {user.telegramUserId ? (
+              <>
+                <span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-700">
+                  Telegram vinculado{user.telegramUsername ? ` (@${user.telegramUsername})` : ''}
+                </span>
+                <button onClick={handleUnlinkTelegram} disabled={busy} className="underline disabled:opacity-50">
+                  Desvincular
+                </button>
+              </>
+            ) : (
+              <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">
+                @{user.telegramUsername} — pendiente, debe escribirle al bot para activarse
+              </span>
             )}
           </div>
         )}

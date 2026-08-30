@@ -35,6 +35,8 @@ model User {
   createdAt          DateTime     @default(now())
   phone              String?      @unique
   whatsappBotEnabled Boolean      @default(false)
+  telegramUserId     String?      @unique
+  telegramUsername   String?      @unique
 
   @@index([contratistaId])
   @@index([clienteId])

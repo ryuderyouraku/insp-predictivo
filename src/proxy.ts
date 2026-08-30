@@ -4,9 +4,10 @@ import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
 
 // La vista de impresión la navega Puppeteer sin cookies de sesión (protegida con su propio
-// token HMAC, ver printToken.ts) y /api/whatsapp lo llama Meta directamente (se verifica con
-// su propia firma) — ninguna de las dos pasa por una sesión de Clerk.
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/reportes/print/(.*)', '/api/whatsapp(.*)'])
+// token HMAC, ver printToken.ts) y /api/whatsapp y /api/telegram los llaman Meta/Telegram
+// directamente (cada uno se verifica con su propia firma/mecanismo) — ninguna de las tres pasa
+// por una sesión de Clerk.
+const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/reportes/print/(.*)', '/api/whatsapp(.*)', '/api/telegram(.*)'])
 
 const isAdminOnly = createRouteMatcher(['/clientes(.*)', '/contratistas(.*)'])
 const isAdminOrSupervisorOnly = createRouteMatcher(['/admin(.*)', '/fajas/new'])

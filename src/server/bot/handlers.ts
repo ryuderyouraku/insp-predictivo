@@ -3,7 +3,7 @@ import { fajaScopeWhere } from '@/lib/permissions'
 import type { ActorUser } from '@/lib/permissions'
 import { getHistoricoByFaja } from '@/lib/historico'
 import { CONDICION_LABELS, computeDelta } from '@/lib/condicion'
-import type { Intent } from './intent'
+import type { Intent, StructuredIntent } from './intent'
 
 const fmtFecha = (d: Date) => d.toLocaleDateString('es-PE')
 
@@ -132,7 +132,7 @@ function noReconocido(): string {
   ].join('\n')
 }
 
-export async function executeIntent(actor: ActorUser, intent: Intent): Promise<string> {
+export async function executeIntent(actor: ActorUser, intent: StructuredIntent): Promise<string> {
   switch (intent.tipo) {
     case 'listado_fajas':
       return listadoFajas(actor)

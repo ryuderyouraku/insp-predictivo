@@ -64,3 +64,10 @@ export function canAssignRole(actor: ActorUser, role: Role): boolean {
   if (actor.role === 'ADMIN') return true
   return actor.role === 'SUPERVISOR' && STAFF_ROLES.includes(role)
 }
+
+/** Throws unless `actor` may manage other users at all (create/edit/bot access/etc). */
+export function assertManager(actor: ActorUser): void {
+  if (actor.role !== 'ADMIN' && actor.role !== 'SUPERVISOR') {
+    throw new Error('No autorizado: se requiere rol de administrador o supervisor')
+  }
+}

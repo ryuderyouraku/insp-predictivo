@@ -29,9 +29,24 @@ export default function SignInPage() {
         <div className="w-full animate-fade-in-up [animation-delay:100ms] [animation-fill-mode:both] md:w-auto md:shrink-0">
           <SignIn
             appearance={{
+              variables: {
+                colorPrimary: '#38bdf8',
+                colorBackground: 'transparent',
+                colorForeground: '#f8fafc',
+                colorMutedForeground: '#cbd5e1',
+                colorInput: 'rgba(15, 23, 42, 0.6)',
+                colorInputForeground: '#f8fafc',
+              },
               elements: {
                 rootBox: 'w-full sm:max-w-sm md:w-96',
                 card: 'w-full rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/50 backdrop-blur-md',
+                socialButtonsBlockButton: 'border border-white/15 bg-white/5 text-white hover:bg-white/10',
+                socialButtonsBlockButtonText: 'text-white',
+                dividerLine: 'bg-white/15',
+                dividerText: 'text-slate-400',
+                formFieldInput: 'border border-white/15 bg-slate-900/60 text-white placeholder:text-slate-500',
+                formButtonPrimary: 'bg-sky-500 text-white hover:bg-sky-400',
+                footerActionLink: 'text-sky-400 hover:text-sky-300',
               },
             }}
           />

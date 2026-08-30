@@ -3,10 +3,11 @@
 import { clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
-import { canAssignRole, canManageUser } from '@/lib/permissions'
+import { canAssignRole, canManageUser, assertManager } from '@/lib/permissions'
 import type { ActorUser } from '@/lib/permissions'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
 import { normalizePhone, isValidPhone } from '@/lib/phone'
+import { normalizeTelegramUsername, isValidTelegramUsername } from '@/lib/telegramUsername'
 import { sendWelcomeWhatsApp } from '@/lib/whatsapp'
 import type { Role, User } from '@prisma/client'
 
@@ -26,6 +27,8 @@ const USER_SELECT = {
   createdAt: true,
   phone: true,
   whatsappBotEnabled: true,
+  telegramUserId: true,
+  telegramUsername: true,
   contratista: { select: { nombre: true } },
   cliente: { select: { nombre: true } },
 } as const
@@ -38,10 +41,14 @@ function resolvePhone(input: string | undefined): string | null {
   return phone
 }
 
-function assertManager(actor: ActorUser) {
-  if (actor.role !== 'ADMIN' && actor.role !== 'SUPERVISOR') {
-    throw new Error('No autorizado: se requiere rol de administrador o supervisor')
+/** Normalizes+validates an optional Telegram @username input; returns null for an empty/absent value. */
+function resolveTelegramUsername(input: string | undefined): string | null {
+  if (!input || !input.trim()) return null
+  const username = normalizeTelegramUsername(input)
+  if (!isValidTelegramUsername(username)) {
+    throw new Error('El usuario de Telegram debe tener entre 5 y 32 caracteres (letras, números y guion bajo)')
   }
+  return username
 }
 
 /** Derives the contratistaId/clienteId a user of `role` should have, trusting the actor's own scope over client input. */
@@ -87,6 +94,7 @@ export interface CreateUserInput {
   contratistaId?: string
   clienteId?: string
   phone?: string
+  telegramUsername?: string
 }
 
 export async function createUser(input: CreateUserInput): Promise<SafeUser> {
@@ -103,12 +111,17 @@ export async function createUser(input: CreateUserInput): Promise<SafeUser> {
 
   const scope = resolveScope(actor, input.role, input)
   const phone = resolvePhone(input.phone)
+  const telegramUsername = resolveTelegramUsername(input.telegramUsername)
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) throw new Error(`Ya existe un usuario con el email ${email}`)
   if (phone) {
     const existingPhone = await prisma.user.findUnique({ where: { phone } })
     if (existingPhone) throw new Error(`Ya existe un usuario con el teléfono ${phone}`)
+  }
+  if (telegramUsername) {
+    const existingTelegram = await prisma.user.findUnique({ where: { telegramUsername } })
+    if (existingTelegram) throw new Error(`Ya existe un usuario con el usuario de Telegram @${telegramUsername}`)
   }
 
   const user = await prisma.user.create({
@@ -119,6 +132,7 @@ export async function createUser(input: CreateUserInput): Promise<SafeUser> {
       ...scope,
       phone,
       whatsappBotEnabled: phone !== null,
+      telegramUsername,
     },
     select: USER_SELECT,
   })
@@ -145,6 +159,7 @@ export interface UpdateUserInput {
   contratistaId?: string
   clienteId?: string
   phone?: string
+  telegramUsername?: string
 }
 
 export async function updateUser(userId: string, input: UpdateUserInput): Promise<SafeUser> {
@@ -168,6 +183,11 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
     const existingPhone = await prisma.user.findUnique({ where: { phone } })
     if (existingPhone) throw new Error(`Ya existe un usuario con el teléfono ${phone}`)
   }
+  const telegramUsername = resolveTelegramUsername(input.telegramUsername)
+  if (telegramUsername && telegramUsername !== target.telegramUsername) {
+    const existingTelegram = await prisma.user.findUnique({ where: { telegramUsername } })
+    if (existingTelegram) throw new Error(`Ya existe un usuario con el usuario de Telegram @${telegramUsername}`)
+  }
 
   const phoneJustAdded = phone !== null && target.phone === null
 
@@ -180,6 +200,7 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
       ...scope,
       phone,
       whatsappBotEnabled: phone === null ? false : phoneJustAdded ? true : target.whatsappBotEnabled,
+      telegramUsername,
     },
     select: USER_SELECT,
   })

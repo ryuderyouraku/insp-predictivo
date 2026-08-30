@@ -1,9 +1,12 @@
+import { toAiMessages } from 'chat/ai'
 import { getBot } from '@/lib/whatsapp'
-import { resolveActorByPhone } from '@/server/whatsapp/resolveUser'
-import { classifyIntent } from '@/server/whatsapp/intent'
-import { executeIntent } from '@/server/whatsapp/handlers'
+import { resolveActorByPhone } from '@/server/bot/resolveUser'
+import { classifyIntent, answerFollowUp } from '@/server/bot/intent'
+import { executeIntent } from '@/server/bot/handlers'
 
 export const runtime = 'nodejs'
+
+const HISTORY_LIMIT = 12
 
 let handlersRegistered = false
 
@@ -19,8 +22,10 @@ async function ensureBot() {
         return
       }
       try {
-        const intent = await classifyIntent(message.text)
-        const reply = await executeIntent(actor, intent)
+        const { messages } = await thread.adapter.fetchMessages(thread.id, { limit: HISTORY_LIMIT })
+        const history = await toAiMessages(messages)
+        const intent = await classifyIntent(history)
+        const reply = intent.tipo === 'seguimiento_libre' ? await answerFollowUp(history) : await executeIntent(actor, intent)
         await thread.post(reply)
       } catch (error) {
         console.error('[whatsapp] Error procesando mensaje', error)

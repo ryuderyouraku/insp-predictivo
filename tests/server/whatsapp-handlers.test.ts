@@ -3,7 +3,7 @@ import { prisma } from '../../src/lib/prisma'
 import { createFaja } from '../../src/server/actions/fajas'
 import { createReporte } from '../../src/server/actions/reportes'
 import { DEFAULT_CRITERIOS } from '../../src/lib/criterios'
-import { executeIntent } from '../../src/server/whatsapp/handlers'
+import { executeIntent } from '../../src/server/bot/handlers'
 import { setActor, supervisorActor, ADMIN_ACTOR } from '../helpers/actor'
 import type { ActorUser } from '../../src/lib/permissions'
 
