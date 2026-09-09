@@ -2,8 +2,7 @@ import { after } from 'next/server'
 import { toAiMessages } from 'chat/ai'
 import { getTelegramBot } from '@/lib/telegram'
 import { resolveActorByTelegramId } from '@/server/bot/resolveUser'
-import { classifyIntent, answerFollowUp } from '@/server/bot/intent'
-import { executeIntent } from '@/server/bot/handlers'
+import { answerQuery } from '@/server/bot/agent'
 import { linkByUsername } from '@/server/bot/link'
 
 const HISTORY_LIMIT = 12
@@ -25,8 +24,7 @@ async function ensureBot() {
         try {
           const { messages } = await thread.adapter.fetchMessages(thread.id, { limit: HISTORY_LIMIT })
           const history = await toAiMessages(messages)
-          const intent = await classifyIntent(history)
-          const reply = intent.tipo === 'seguimiento_libre' ? await answerFollowUp(history) : await executeIntent(actor, intent)
+          const reply = await answerQuery(actor, history)
           await thread.post(reply)
         } catch (error) {
           console.error('[telegram] Error procesando mensaje', error)
