@@ -20,7 +20,14 @@ const { unlinkTelegram } = await import('../../src/server/actions/telegram')
 const EMAIL_PREFIX = 'telegram-link-test-'
 
 async function makeUser(suffix: string, telegramUsername?: string) {
-  return createUser({ name: `Telegram ${suffix}`, email: `${EMAIL_PREFIX}${suffix}@example.com`, role: 'ADMIN', telegramUsername })
+  const result = await createUser({
+    name: `Telegram ${suffix}`,
+    email: `${EMAIL_PREFIX}${suffix}@example.com`,
+    role: 'ADMIN',
+    telegramUsername,
+  })
+  if (!result.ok) throw new Error(result.error)
+  return result.user
 }
 
 describe('Telegram bot linking', () => {
@@ -79,16 +86,16 @@ describe('Telegram bot linking', () => {
 
   it('updateUser can register a Telegram username after creation', async () => {
     const user = await makeUser('register-later')
-    const updated = await updateUser(user.id, { name: user.name, email: user.email, role: user.role, telegramUsername: '@late_handle' })
-    expect(updated.telegramUsername).toBe('late_handle')
+    const result = await updateUser(user.id, { name: user.name, email: user.email, role: user.role, telegramUsername: '@late_handle' })
+    if (!result.ok) throw new Error(result.error)
+    expect(result.user.telegramUsername).toBe('late_handle')
   })
 
   it('a supervisor cannot register a Telegram username for a user outside their contratista', async () => {
     const user = await makeUser('scoped')
     setActor(supervisorActor('nonexistent-contratista'))
-    await expect(
-      updateUser(user.id, { name: user.name, email: user.email, role: user.role, telegramUsername: 'someone' })
-    ).rejects.toThrow('No autorizado')
+    const result = await updateUser(user.id, { name: user.name, email: user.email, role: user.role, telegramUsername: 'someone' })
+    expect(result).toEqual({ ok: false, error: expect.stringContaining('No autorizado') })
   })
 
   it('unlinkTelegram clears both the linked account and the registered username', async () => {

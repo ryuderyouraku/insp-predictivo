@@ -32,6 +32,7 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
   const [contratistaId, setContratistaId] = useState(contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -41,28 +42,29 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setError(null)
+    setWarning(null)
     setSuccess(false)
     setSubmitting(true)
-    try {
-      await createUser({
-        name,
-        email,
-        role,
-        contratistaId: needsContratista ? contratistaId : undefined,
-        clienteId: needsCliente ? clienteId : undefined,
-        telegramUsername: telegramUsername.trim() || undefined,
-      })
-      setName('')
-      setEmail('')
-      setTelegramUsername('')
-      setRole(assignableRoles[0])
-      setSuccess(true)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el usuario')
-    } finally {
-      setSubmitting(false)
+    const result = await createUser({
+      name,
+      email,
+      role,
+      contratistaId: needsContratista ? contratistaId : undefined,
+      clienteId: needsCliente ? clienteId : undefined,
+      telegramUsername: telegramUsername.trim() || undefined,
+    })
+    setSubmitting(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
     }
+    setName('')
+    setEmail('')
+    setTelegramUsername('')
+    setRole(assignableRoles[0])
+    setSuccess(true)
+    if (result.inviteWarning) setWarning(result.inviteWarning)
+    router.refresh()
   }
 
   return (
@@ -150,6 +152,9 @@ export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUser
         <p className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
           Cuenta creada correctamente. Le enviamos una invitación por email.
         </p>
+      )}
+      {warning && (
+        <p className="rounded border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">{warning}</p>
       )}
       <button
         type="submit"

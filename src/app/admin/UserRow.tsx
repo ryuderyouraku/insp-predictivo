@@ -2,13 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  deleteUser,
-  updateUser,
-  toggleWhatsappBotAccess,
-  resendInvite,
-  type SafeUser,
-} from '@/server/actions/users'
+import { deleteUser, updateUser, resendInvite, type SafeUser } from '@/server/actions/users'
 import { unlinkTelegram } from '@/server/actions/telegram'
 import type { Cliente, Contratista, Role } from '@prisma/client'
 
@@ -42,7 +36,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email)
-  const [phone, setPhone] = useState(user.phone ?? '')
   const [role, setRole] = useState<Role>(user.role)
   const [contratistaId, setContratistaId] = useState(user.contratistaId ?? contratistas[0]?.id ?? '')
   const [clienteId, setClienteId] = useState(user.clienteId ?? clientes[0]?.id ?? '')
@@ -56,36 +49,21 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   async function handleSaveEdit() {
     setError(null)
     setBusy(true)
-    try {
-      await updateUser(user.id, {
-        name,
-        email,
-        role,
-        contratistaId: needsContratista ? contratistaId : undefined,
-        clienteId: needsCliente ? clienteId : undefined,
-        phone: phone.trim() || undefined,
-        telegramUsername: telegramUsername.trim() || undefined,
-      })
-      setEditing(false)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar')
-    } finally {
-      setBusy(false)
+    const result = await updateUser(user.id, {
+      name,
+      email,
+      role,
+      contratistaId: needsContratista ? contratistaId : undefined,
+      clienteId: needsCliente ? clienteId : undefined,
+      telegramUsername: telegramUsername.trim() || undefined,
+    })
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
     }
-  }
-
-  async function handleToggleBot() {
-    setError(null)
-    setBusy(true)
-    try {
-      await toggleWhatsappBotAccess(user.id, !user.whatsappBotEnabled)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cambiar el acceso al bot')
-    } finally {
-      setBusy(false)
-    }
+    setEditing(false)
+    router.refresh()
   }
 
   async function handleUnlinkTelegram() {
@@ -105,26 +83,25 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
   async function handleResendInvite() {
     setError(null)
     setBusy(true)
-    try {
-      await resendInvite(user.id)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al reenviar la invitación')
-    } finally {
-      setBusy(false)
+    const result = await resendInvite(user.id)
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
     }
+    router.refresh()
   }
 
   async function handleDelete() {
     setError(null)
     setBusy(true)
-    try {
-      await deleteUser(user.id)
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar')
+    const result = await deleteUser(user.id)
+    if (!result.ok) {
+      setError(result.error)
       setBusy(false)
+      return
     }
+    router.refresh()
   }
 
   if (editing) {
@@ -134,12 +111,6 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-center">
             <input className="rounded border px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="rounded border px-2 py-1" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input
-              className="rounded border px-2 py-1"
-              placeholder="Teléfono, ej: +51987654321"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
             <input
               className="rounded border px-2 py-1"
               placeholder="Usuario de Telegram, ej: nelson_lq"
@@ -191,27 +162,11 @@ export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: Use
       <td className="px-4 py-3">{user.name}</td>
       <td className="px-4 py-3">
         {user.email}
-        {(!user.clerkId || user.phone) && (
+        {!user.clerkId && (
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
-            {!user.clerkId && (
-              <span className="rounded-full bg-yellow-100 px-2 py-0.5 font-medium text-yellow-700">
-                Invitación pendiente
-              </span>
-            )}
-            {user.phone && (
-              <>
-                <span>{user.phone}</span>
-                <button
-                  onClick={handleToggleBot}
-                  disabled={busy}
-                  className={`rounded-full px-2 py-0.5 font-medium disabled:opacity-50 ${
-                    user.whatsappBotEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {user.whatsappBotEnabled ? 'Bot activo' : 'Bot desactivado'}
-                </button>
-              </>
-            )}
+            <span className="rounded-full bg-yellow-100 px-2 py-0.5 font-medium text-yellow-700">
+              Invitación pendiente
+            </span>
           </div>
         )}
         {(user.telegramUserId || user.telegramUsername) && (

@@ -8,7 +8,7 @@ const HOY = () => new Date().toISOString().slice(0, 10)
 function buildSystemPrompt(): string {
   return (
     `Eres el asistente de chat de una app de inspecciones de termografía de fajas transportadoras. ` +
-    `Hoy es ${HOY()}. Conversas por Telegram/WhatsApp con un usuario que ya tiene una cuenta vinculada.\n\n` +
+    `Hoy es ${HOY()}. Conversas por Telegram con un usuario que ya tiene una cuenta vinculada.\n\n` +
     `Tienes herramientas de solo lectura para consultar la base de datos real de fajas, reportes, ` +
     `lecturas y criterios de aceptación — todas ya filtradas al alcance del usuario (su contratista o cliente), ` +
     `así que solo verás lo que él puede ver. Úsalas todas las veces que necesites, incluso combinadas, ` +
