@@ -47,10 +47,19 @@ export async function getCurrentUser(): Promise<ActorUser | null> {
  * Redirects instead of throwing: without a session (or one that briefly hasn't finished
  * syncing right after an OAuth redirect), the right move is to send the visitor back to
  * `/sign-in`, not crash the page with an uncaught error.
+ *
+ * A signed-in Clerk user with no matching Postgres row (nobody created their account yet,
+ * or they authenticated with a different email than the one an admin registered) is sent to
+ * `/cuenta-no-autorizada` instead of `/sign-in` — sending them back to `/sign-in` would bounce
+ * forever, since Clerk's <SignIn> immediately redirects an already-authenticated visitor back
+ * into the app via `signInFallbackRedirectUrl`, which fails this same check again.
  */
 export async function requireUser(): Promise<ActorUser> {
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in')
+
   const user = await getCurrentUser()
-  if (!user) redirect('/sign-in')
+  if (!user) redirect('/cuenta-no-autorizada')
   return user
 }
 
