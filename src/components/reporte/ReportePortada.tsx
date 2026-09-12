@@ -1,5 +1,6 @@
 import type { ReporteConDetalle } from '@/lib/types'
 import { CONDICION_LABELS, CONDICION_STYLES } from '@/lib/condicion'
+import { especialistaLabel } from '@/lib/reporteEspecialista'
 
 function Dato({ label, value }: { label: string; value: string }) {
   return (
@@ -39,7 +40,7 @@ export function ReportePortada({ reporte }: { reporte: ReporteConDetalle }) {
           <Dato label="Fecha monitoreo" value={new Date(reporte.fecha).toLocaleDateString('es-PE')} />
           <Dato label="Componentes" value="Chumaceras" />
           <Dato label="Supervisor" value={reporte.supervisor} />
-          <Dato label="Inspector" value={reporte.especialista} />
+          <Dato label="Inspector" value={especialistaLabel(reporte)} />
           <Dato label="Nº OT" value={reporte.numeroOT} />
           <Dato label="Poleas evaluadas" value={String(reporte.lecturas.length)} />
         </dl>

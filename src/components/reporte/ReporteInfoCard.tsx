@@ -1,4 +1,5 @@
 import type { ReporteConDetalle } from '@/lib/types'
+import { especialistaLabel } from '@/lib/reporteEspecialista'
 
 function Campo({ label, value }: { label: string; value: string }) {
   return (
@@ -20,7 +21,7 @@ export function ReporteInfoCard({ reporte }: { reporte: ReporteConDetalle }) {
         <Campo label="Sistema" value={faja.tag} />
         <Campo label="Supervisor" value={reporte.supervisor} />
         <Campo label="Componentes" value="Chumaceras" />
-        <Campo label="Especialista" value={reporte.especialista} />
+        <Campo label="Especialista" value={especialistaLabel(reporte)} />
         <Campo label="Nº OT" value={reporte.numeroOT} />
       </dl>
     </div>

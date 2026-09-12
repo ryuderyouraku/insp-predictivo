@@ -37,6 +37,7 @@ model User {
   whatsappBotEnabled Boolean      @default(false)
   telegramUserId     String?      @unique
   telegramUsername   String?      @unique
+  reportesComoEspecialista Reporte[] @relation("ReporteEspecialistas")
 
   @@index([contratistaId])
   @@index([clienteId])
@@ -108,7 +109,11 @@ model Reporte {
   fajaId             String
   faja               Faja           @relation(fields: [fajaId], references: [id], onDelete: Cascade)
   fecha              DateTime
-  especialista       String
+  // Legacy free-text specialist name, kept for reports created before `especialistas` existed.
+  // New reports leave this null and use the `especialistas` relation instead — see
+  // src/lib/reporteEspecialista.ts for the fallback that reads whichever is populated.
+  especialista       String?
+  especialistas      User[]         @relation("ReporteEspecialistas")
   supervisor         String
   numeroOT           String
   condicionGeneral   Condicion

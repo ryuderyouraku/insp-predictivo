@@ -35,7 +35,7 @@ describe('createReporte', () => {
     const reporte = await createReporte({
       fajaId: faja.id,
       fecha: new Date('2026-08-02'),
-      especialista: 'Nelson Larico',
+      especialistaNombre: 'Nelson Larico',
       supervisor: 'Rolando Aliaga',
       numeroOT: '4016597449',
       lecturas: faja.poleas.map((polea, index) => ({
@@ -63,7 +63,7 @@ describe('createReporte', () => {
       createReporte({
         fajaId: faja.id,
         fecha: new Date(),
-        especialista: 'X',
+        especialistaNombre: 'X',
         supervisor: 'Y',
         numeroOT: '123',
         lecturas: [
@@ -88,7 +88,7 @@ describe('createReporte', () => {
     const reporte = await createReporte({
       fajaId: faja.id,
       fecha: new Date(),
-      especialista: 'X',
+      especialistaNombre: 'X',
       supervisor: 'Y',
       numeroOT: '123',
       lecturas: faja.poleas.map((polea) => ({

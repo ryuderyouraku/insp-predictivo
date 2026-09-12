@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/session'
 import { canManageFaja } from '@/lib/permissions'
 import { getReporteBySlug } from '@/server/actions/reportes'
 import { resumirReporte } from '@/lib/reporteResumen'
+import { especialistaLabel } from '@/lib/reporteEspecialista'
 import { CONDICION_LABELS, CONDICION_STYLES } from '@/lib/condicion'
 import { ReporteInfoCard } from '@/components/reporte/ReporteInfoCard'
 import { ReporteSummaryCards } from '@/components/reporte/ReporteSummaryCards'
@@ -42,7 +43,7 @@ export default async function ReporteDetailPage({ params }: { params: Promise<{ 
             </span>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            {new Date(reporte.fecha).toLocaleDateString('es-PE')} · {reporte.especialista}
+            {new Date(reporte.fecha).toLocaleDateString('es-PE')} · {especialistaLabel(reporte)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

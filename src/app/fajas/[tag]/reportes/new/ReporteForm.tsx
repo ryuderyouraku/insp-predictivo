@@ -21,6 +21,7 @@ interface LecturaFormState {
 }
 
 const CONDICIONES: Condicion[] = ['BUENO', 'ACEPTABLE', 'INSATISFACTORIO', 'INACEPTABLE']
+const MAX_ESPECIALISTAS = 3
 
 function isLecturaCompleta(lectura: LecturaFormState): boolean {
   return Boolean(lectura.tempIzquierda && lectura.tempDerecha && lectura.fotoIzquierdaUrl && lectura.fotoDerechaUrl)
@@ -28,14 +29,18 @@ function isLecturaCompleta(lectura: LecturaFormState): boolean {
 
 interface ReporteFormProps {
   faja: FajaConDetalle
-  currentUserName: string
+  currentUserId: string
   supervisores: { id: string; name: string }[]
+  especialistas: { id: string; name: string }[]
 }
 
-export function ReporteForm({ faja, currentUserName, supervisores }: ReporteFormProps) {
+export function ReporteForm({ faja, currentUserId, supervisores, especialistas }: ReporteFormProps) {
   const router = useRouter()
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
-  const [especialista, setEspecialista] = useState(currentUserName)
+  const [especialistaIds, setEspecialistaIds] = useState<string[]>(
+    especialistas.some((u) => u.id === currentUserId) ? [currentUserId] : []
+  )
+  const [especialistaNombre, setEspecialistaNombre] = useState('')
   const [supervisor, setSupervisor] = useState(supervisores[0]?.name ?? '')
   const [numeroOT, setNumeroOT] = useState('')
   const [observacionGeneral, setObservacionGeneral] = useState('Equipo sin indicaciones')
@@ -56,6 +61,14 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
     () => faja.poleas.filter((polea) => isLecturaCompleta(lecturas[polea.id])).length,
     [faja.poleas, lecturas]
   )
+
+  function toggleEspecialista(id: string) {
+    setEspecialistaIds((prev) => {
+      if (prev.includes(id)) return prev.filter((existing) => existing !== id)
+      if (prev.length >= MAX_ESPECIALISTAS) return prev
+      return [...prev, id]
+    })
+  }
 
   function updateLectura(poleaId: string, patch: Partial<LecturaFormState>) {
     setLecturas((prev) => {
@@ -133,7 +146,8 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
       await createReporte({
         fajaId: faja.id,
         fecha: new Date(fecha),
-        especialista,
+        especialistaIds: especialistas.length > 0 ? especialistaIds : undefined,
+        especialistaNombre: especialistas.length === 0 ? especialistaNombre : undefined,
         supervisor,
         numeroOT,
         observacionGeneral,
@@ -181,10 +195,51 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
           <span className="mb-1 block text-gray-600">Nº OT</span>
           <input className="w-full rounded border px-3 py-2" value={numeroOT} onChange={(e) => setNumeroOT(e.target.value)} required />
         </label>
-        <label className="text-sm">
-          <span className="mb-1 block text-gray-600">Especialista</span>
-          <input className="w-full rounded border px-3 py-2" value={especialista} onChange={(e) => setEspecialista(e.target.value)} required />
-        </label>
+        <div className="text-sm sm:col-span-2">
+          <span className="mb-1 flex items-center justify-between text-gray-600">
+            <span>Especialista{especialistas.length > 0 ? 's' : ''}</span>
+            {especialistas.length > 0 && (
+              <span className="text-xs text-gray-400">{especialistaIds.length}/{MAX_ESPECIALISTAS} seleccionados</span>
+            )}
+          </span>
+          {especialistas.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {especialistas.map((u) => {
+                const checked = especialistaIds.includes(u.id)
+                const disabled = !checked && especialistaIds.length >= MAX_ESPECIALISTAS
+                return (
+                  <label
+                    key={u.id}
+                    className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-sm ${
+                      checked ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'
+                    } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-blue-600"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => toggleEspecialista(u.id)}
+                    />
+                    {u.name}
+                  </label>
+                )
+              })}
+            </div>
+          ) : (
+            <>
+              <input
+                className="w-full rounded border px-3 py-2"
+                value={especialistaNombre}
+                onChange={(e) => setEspecialistaNombre(e.target.value)}
+                required
+              />
+              <span className="mt-1 block text-xs text-gray-400">
+                Esta contratista todavía no tiene supervisores/inspectores registrados en /admin.
+              </span>
+            </>
+          )}
+        </div>
         <label className="text-sm">
           <span className="mb-1 block text-gray-600">Supervisor</span>
           {supervisores.length > 0 ? (

@@ -22,12 +22,17 @@ export interface LecturaPoleaInput {
 export interface CreateReporteInput {
   fajaId: string
   fecha: Date
-  especialista: string
+  /** 1-3 User ids from the faja's own contratista — preferred over `especialistaNombre`. */
+  especialistaIds?: string[]
+  /** Legacy free-text fallback, only for a contratista with no SUPERVISOR/INSPECTOR registered yet. */
+  especialistaNombre?: string
   supervisor: string
   numeroOT: string
   observacionGeneral?: string
   lecturas: LecturaPoleaInput[]
 }
+
+const MAX_ESPECIALISTAS = 3
 
 export async function createReporte(input: CreateReporteInput): Promise<Reporte> {
   const user = await requireUser()
@@ -44,8 +49,25 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
       throw new Error('Cada polea requiere las dos fotos de termograma (izquierda y derecha)')
     }
   }
-  if (!input.especialista.trim() || !input.supervisor.trim()) {
-    throw new Error('Especialista y supervisor son obligatorios')
+  if (!input.supervisor.trim()) {
+    throw new Error('El supervisor es obligatorio')
+  }
+
+  const especialistaIds = input.especialistaIds ?? []
+  const especialistaNombre = input.especialistaNombre?.trim() ?? ''
+  if (especialistaIds.length === 0 && !especialistaNombre) {
+    throw new Error('Debes indicar al menos un especialista')
+  }
+  if (especialistaIds.length > MAX_ESPECIALISTAS) {
+    throw new Error(`Puedes elegir como máximo ${MAX_ESPECIALISTAS} especialistas`)
+  }
+  if (especialistaIds.length > 0) {
+    const validos = await prisma.user.count({
+      where: { id: { in: especialistaIds }, contratistaId: faja.contratistaId, role: { in: ['SUPERVISOR', 'INSPECTOR'] } },
+    })
+    if (validos !== especialistaIds.length) {
+      throw new Error('Uno o más especialistas seleccionados no pertenecen a esta contratista')
+    }
   }
 
   const condicionGeneral = worstCondicion(input.lecturas.map((l) => l.condicion))
@@ -54,7 +76,8 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
     data: {
       fajaId: input.fajaId,
       fecha: input.fecha,
-      especialista: input.especialista.trim(),
+      especialista: especialistaIds.length > 0 ? null : especialistaNombre,
+      especialistas: especialistaIds.length > 0 ? { connect: especialistaIds.map((id) => ({ id })) } : undefined,
       supervisor: input.supervisor.trim(),
       numeroOT: input.numeroOT.trim(),
       condicionGeneral,
@@ -70,6 +93,7 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
 const REPORTE_INCLUDE = {
   faja: { include: { cliente: true, contratista: true, criterios: true } },
   lecturas: { include: { polea: true }, orderBy: { polea: { numero: 'asc' as const } } },
+  especialistas: { select: { id: true, name: true } },
 }
 
 export async function getReporteById(id: string) {

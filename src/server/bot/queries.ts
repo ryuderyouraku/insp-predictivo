@@ -3,6 +3,7 @@ import { fajaScopeWhere } from '@/lib/permissions'
 import type { ActorUser } from '@/lib/permissions'
 import { getHistoricoByFaja } from '@/lib/historico'
 import { computeDelta, SEVERITY } from '@/lib/condicion'
+import { especialistaLabel } from '@/lib/reporteEspecialista'
 import type { Condicion, Prisma } from '@prisma/client'
 
 /**
@@ -212,7 +213,7 @@ export async function listarReportes(actor: ActorUser, input: ListarReportesInpu
         : {}),
       ...(input.condicion ? { condicionGeneral: input.condicion } : {}),
     },
-    include: { faja: { select: { tag: true } } },
+    include: { faja: { select: { tag: true } }, especialistas: { select: { name: true } } },
     orderBy: { fecha: 'desc' },
     take: 20,
   })
@@ -222,7 +223,7 @@ export async function listarReportes(actor: ActorUser, input: ListarReportesInpu
       fajaTag: r.faja.tag,
       fecha: r.fecha,
       numeroOT: r.numeroOT,
-      especialista: r.especialista,
+      especialista: especialistaLabel(r),
       supervisor: r.supervisor,
       condicionGeneral: r.condicionGeneral,
       observacionGeneral: r.observacionGeneral,
@@ -245,7 +246,10 @@ export async function detalleReporte(actor: ActorUser, input: DetalleReporteInpu
       ...(input.fecha ? { fecha: { gte: startOfDay(input.fecha), lte: endOfDay(input.fecha) } } : {}),
     },
     orderBy: { fecha: 'desc' },
-    include: { lecturas: { include: { polea: true }, orderBy: { polea: { numero: 'asc' } } } },
+    include: {
+      lecturas: { include: { polea: true }, orderBy: { polea: { numero: 'asc' } } },
+      especialistas: { select: { name: true } },
+    },
   })
   if (!reporte) {
     return {
@@ -261,7 +265,7 @@ export async function detalleReporte(actor: ActorUser, input: DetalleReporteInpu
       fajaTag: faja.tag,
       fecha: reporte.fecha,
       numeroOT: reporte.numeroOT,
-      especialista: reporte.especialista,
+      especialista: especialistaLabel(reporte),
       supervisor: reporte.supervisor,
       condicionGeneral: reporte.condicionGeneral,
       observacionGeneral: reporte.observacionGeneral,

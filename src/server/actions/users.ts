@@ -68,6 +68,16 @@ export async function listSupervisoresDeContratista(contratistaId: string): Prom
   })
 }
 
+/** Names only, for the "especialista" picker on the reporte form — any authenticated user may call this. */
+export async function listEspecialistasDeContratista(contratistaId: string): Promise<{ id: string; name: string }[]> {
+  await requireUser()
+  return prisma.user.findMany({
+    where: { contratistaId, role: { in: ['SUPERVISOR', 'INSPECTOR'] } },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+}
+
 export async function listUsers(): Promise<SafeUser[]> {
   const actor = await requireUser()
   assertManager(actor)

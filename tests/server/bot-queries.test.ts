@@ -28,7 +28,7 @@ async function makeScenario() {
   await createReporte({
     fajaId: faja.id,
     fecha: new Date('2026-07-12'),
-    especialista: 'Nelson',
+    especialistaNombre: 'Nelson',
     supervisor: 'Rolando',
     numeroOT: 'OT-1',
     lecturas: [

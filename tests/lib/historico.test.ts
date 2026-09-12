@@ -36,12 +36,12 @@ describe('getHistoricoByFaja', () => {
       diagnosticoTexto: 'texto',
     }
     await createReporte({
-      fajaId: faja.id, fecha: new Date('2026-02-17'), especialista: 'X', supervisor: 'Y',
+      fajaId: faja.id, fecha: new Date('2026-02-17'), especialistaNombre: 'X', supervisor: 'Y',
       numeroOT: '1',
       lecturas: [{ ...lecturaInput, tempIzquierda: 22.8, tempDerecha: 26.2 }],
     })
     await createReporte({
-      fajaId: faja.id, fecha: new Date('2026-08-02'), especialista: 'X', supervisor: 'Y',
+      fajaId: faja.id, fecha: new Date('2026-08-02'), especialistaNombre: 'X', supervisor: 'Y',
       numeroOT: '2',
       lecturas: [{ ...lecturaInput, tempIzquierda: 32.4, tempDerecha: 22.5 }],
     })
